@@ -15,7 +15,8 @@ PyObject* npy_disk(const size_t width,
                    const double line_angle,
                    const size_t artifact_size,
                    const double radius,
-                   const int noise,
+                   const int filter_noise,
+                   const int bg_noise,
                    const size_t angle_samples)
 {
     auto result = psm::disk(width,
@@ -25,7 +26,8 @@ PyObject* npy_disk(const size_t width,
                             line_angle,
                             artifact_size,
                             radius,
-                            (T)noise,
+                            (T)filter_noise,
+                            (T)bg_noise,
                             angle_samples);
     return vps_py::py_object(result);
 }
@@ -38,7 +40,8 @@ extern "C" PyObject* disk(long width,
                           double line_angle,
                           long artifact_size,
                           double radius,
-                          long noise,
+                          long filter_noise,
+                          long bg_noise,
                           long angle_samples)
 {
     PyGIL lock;
@@ -51,7 +54,8 @@ extern "C" PyObject* disk(long width,
                                  line_angle,
                                  (size_t)artifact_size,
                                  radius,
-                                 (int)noise,
+                                 (int)filter_noise,
+                                 (int)bg_noise,
                                  (size_t)angle_samples);
     } catch (...) {
         return exception2py();

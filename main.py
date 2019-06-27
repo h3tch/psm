@@ -6,19 +6,20 @@ import psm.filter
 import psm.generate
 
 
-# def resize_image(image, factor):
-#     new_shape = tuple(i * 3 for i in image.shape)
-#     return np.array(Image.fromarray(line_image).resize(new_shape))
+artifact_size = 5
+line_angles = [np.deg2rad(-5), np.deg2rad(-10), np.deg2rad(-20), np.deg2rad(-45)]
+angle_samples = [1, 2]
+filter_size = [1, 10, 15]
+noise_intensity = [0, 5, 5]
 
-# line_image = psm.generate.line(60, 60, 30, 30.1, np.deg2rad(-45), 5)
-# plot.imshow(line_image, cmap='gray', vmin=0, vmax=255)
-# plot.show()
+images = [[psm.filter.disk(160, 160, 80, 80.5, np.deg2rad(-5), 5, filter_radius, noise, 10, 1)
+           for noise, filter_radius in zip(noise_intensity, filter_size)]]
 
-image_0 = psm.filter.disk(60, 60, 30, 30.5, np.deg2rad(-45), 5, 1, 0, 1)
-image_1 = psm.filter.disk(60, 60, 30, 30.5, np.deg2rad(-45), 5, 5, 30, 2)
+rows = len(images)
+cols = max(len(i) for i in images)
 
-plot.subplot(1, 2, 1)
-plot.imshow(image_0, cmap='gray', vmin=0, vmax=255)
-plot.subplot(1, 2, 2)
-plot.imshow(image_1, cmap='gray', vmin=0, vmax=255)
+for r, image_row in enumerate(images):
+    for i, image in enumerate(image_row):
+        plot.subplot(rows, cols, (cols * r) + i + 1)
+        plot.imshow(image, cmap='gray', vmin=0, vmax=255)
 plot.show()

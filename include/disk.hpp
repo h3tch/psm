@@ -18,6 +18,28 @@ template <typename T>
 using image_t = Eigen::Matrix<T, -1, -1, Eigen::RowMajor>;
 
 namespace {
+    template <typename real_t, typename T>
+    inline std::tuple<real_t, real_t> rotate(const real_t* sincos,
+                                             const real_t cx,
+                                             const real_t cy,
+                                             const T x,
+                                             const T y)
+    {
+        const real_t tmp_x = x - cx;
+        const real_t tmp_y = y - cy;
+        return std::make_tuple(sincos[1] * tmp_x - sincos[0] * tmp_y + cx,
+                               sincos[0] * tmp_x + sincos[1] * tmp_y + cy);
+    }
+
+
+    template <typename real_t>
+    inline real_t rasterize(const ssize_t raster_size, const real_t value)
+    {
+        return ssize_t(value / raster_size) * raster_size
+               - (value < 0 ? raster_size : 0) + raster_size * 0.5;
+    }
+
+
     template <typename return_t, typename real_t>
     inline return_t filter(const real_t center_x,
                            const real_t center_y,
@@ -25,84 +47,66 @@ namespace {
                            const real_t line_y,
                            const real_t line_angle,
                            const ssize_t artifact_size,
-                           const ssize_t r0,
-                           const ssize_t r1,
-                           const ssize_t c0,
-                           const ssize_t c1,
-                           const ssize_t c,
-                           const ssize_t r,
-                           const real_t radius,
+                           const ssize_t filter_x,
+                           const ssize_t filter_y,
+                           const real_t filter_radius,
                            const size_t angle_samples)
     {
-        size_t s = 0;
-        real_t A = 0;
+        real_t fx, fy, lx, ly, sx, sy;
+
+        const auto R = ssize_t(filter_radius + 0.5);
+        const auto c0 = filter_x - R;
+        const auto c1 = filter_x + R;
+        const auto r0 = filter_y - R;
+        const auto r1 = filter_y + R;
         const auto minimum = std::numeric_limits<return_t>::min();
         const auto maximum = std::numeric_limits<return_t>::max();
 
-        for (size_t angle_sample = 1; angle_sample <= angle_samples;
-             ++angle_sample) {
-            const real_t angle = pi / (2 * angle_sample);
-            const real_t cos = std::cos(angle);
-            const real_t sin = std::sin(angle);
+        size_t sum = 0;
+        real_t summed_area = 0;
 
-            const real_t c_ = cos * (c - center_x) - sin * (r - center_y);
-            const real_t r_ = sin * (c - center_x) + cos * (r - center_y);
+        for (size_t a = 1; a <= angle_samples; ++a) {
+            const real_t offset = pi / (2 * a);
+            const real_t sincos_offset[] = {std::sin(offset), std::cos(offset)};
+            const real_t angle = line_angle - offset;
+            const real_t line_vector_x = std::cos(angle);
+            const real_t line_vector_y = std::sin(angle);
 
-            const real_t lx_ =
-                (line_x - center_x) * cos - (line_y - center_y) * sin;
-            const real_t ly_ =
-                (line_x - center_x) * sin + (line_y - center_y) * cos;
+            std::tie(fx, fy) =
+                rotate(sincos_offset, center_x, center_y, filter_x, filter_y);
+            std::tie(lx, ly) =
+                rotate(sincos_offset, center_x, center_y, line_x, line_y);
 
-            const real_t alpha = line_angle - angle;
+            const real_t ld = lx * line_vector_x - ly * line_vector_y;
 
-            const real_t ld_ = lx_ * std::cos(alpha) - ly_ * std::sin(alpha);
+            for (ssize_t sample_y = r0; sample_y <= r1; ++sample_y) {
+                for (ssize_t sample_x = c0; sample_x <= c1; ++sample_x) {
+                    std::tie(sx, sy) = rotate(
+                        sincos_offset, center_x, center_y, sample_x, sample_y);
 
-            for (ssize_t j = r0; j <= r1; ++j) {
-                for (ssize_t i = c0; i <= c1; ++i) {
-                    const ssize_t i_ =
-                        ssize_t(cos * (i - center_x) - sin * (j - center_y));
-                    const ssize_t j_ =
-                        ssize_t(sin * (i - center_x) + cos * (j - center_y));
+                    const auto area = filter_radius == 0
+                                          ? 1
+                                          : box_circle_area(sx - 0.5,
+                                                            sx + 0.5,
+                                                            sy - 0.5,
+                                                            sy + 0.5,
+                                                            fx,
+                                                            fy,
+                                                            filter_radius);
 
-                    const auto a = box_circle_area(
-                        i_ - 0.5, i_ + 0.5, j_ - 0.5, j_ + 0.5, c_, r_, radius);
+                    const real_t raster_sx = rasterize(artifact_size, sx);
+                    const real_t raster_sy = rasterize(artifact_size, sy);
 
-                    const real_t x2_ = (i_ < 0 ? -1 : 1) * ((i_ < 0 ? artifact_size-i_ : i_) / artifact_size) * artifact_size;
-                    const real_t y2_ = (j_ < 0 ? -1 : 1) * ((j_ < 0 ? artifact_size-j_ : j_) / artifact_size) * artifact_size;
+                    const real_t d =
+                        raster_sx * line_vector_x - raster_sy * line_vector_y;
 
-                    const real_t d_ =
-                        x2_ * std::cos(alpha) - y2_ * std::sin(alpha);
-
-                    s += a * (d_ <= ld_ ? maximum : minimum);
-                    A += a;
+                    sum += area * (d <= ld ? maximum : minimum);
+                    summed_area += area;
                 }
             }
         }
-        return return_t(s / A + 0.5);
+        return return_t(sum / summed_area + 0.5);
     }
-
-    // template <typename return_t, typename image_t, typename real_t>
-    // inline return_t filter(const image_t& image,
-    //                        const size_t r0,
-    //                        const size_t r1,
-    //                        const size_t c0,
-    //                        const size_t c1,
-    //                        const size_t c,
-    //                        const size_t r,
-    //                        const real_t radius)
-    // {
-    //     return_t s = 0;
-    //     real_t A = 0;
-    //     for (auto j = r0; j < r1; ++j) {
-    //         for (auto i = c0; i < c1; ++i) {
-    //             const auto a = box_circle_area(
-    //                 i - 0.5, i + 0.5, j - 0.5, j + 0.5, c, r, radius);
-    //             s += image(j, i) * a;
-    //             A += a;
-    //         }
-    //     }
-    //     return return_t(s / A + 0.5);
-    // }
 
     template <typename real_t>
     inline real_t clip(const real_t value, const real_t min, const real_t max)
@@ -119,24 +123,24 @@ image_t<pixel_t> disk(const size_t width,
                       const real_t line_angle,
                       const size_t artifact_size,
                       const real_t radius,
-                      const pixel_t noise,
+                      const pixel_t filter_noise,
+                      const pixel_t bg_noise,
                       const size_t angle_samples)
 {
     typedef typename std::make_signed<pixel_t>::type spixel_t;
 
     std::random_device rd;
     std::mt19937 generator(rd());
-    std::uniform_int_distribution<spixel_t> random_noise(-noise, noise);
+    std::uniform_int_distribution<spixel_t> random_filter_noise(-filter_noise,
+                                                                filter_noise);
+    std::uniform_int_distribution<spixel_t> random_bg_noise(-bg_noise,
+                                                            bg_noise);
 
     image_t<pixel_t> result(height, width);
     const auto max_value = std::numeric_limits<pixel_t>::max();
-    const auto R = ssize_t(radius + 0.5);
 
     const auto center_x = width * 0.5;
     const auto center_y = height * 0.5;
-    // const auto nx = -std::sin(line_angle);
-    // const auto ny = std::cos(line_angle);
-    // const auto d = line_x * nx + line_y * ny;
 
     for (ssize_t r = 0; r < (ssize_t)height; ++r) {
         for (ssize_t c = 0; c < (ssize_t)width; ++c) {
@@ -146,26 +150,20 @@ image_t<pixel_t> disk(const size_t width,
                                               line_y,
                                               line_angle,
                                               (ssize_t)artifact_size,
-                                              r - R,
-                                              r + R,
-                                              c - R,
-                                              c + R,
                                               c,
                                               r,
                                               radius,
                                               angle_samples);
-            result(r, c) = s;
 
-            if (0 < s && s < max_value) {
-                const auto n = random_noise(generator);
+            auto noise = 0 < s && s < max_value ? random_filter_noise(generator) : 0;
+            noise += s < 32 || max_value - 32 < s ? random_bg_noise(generator) : 0;
 
-                if (n < 0) {
-                    const auto n_ = -n;
-                    result(r, c) -= n_ > s ? s : n_;
-                } else {
-                    const auto s_ = max_value - s;
-                    result(r, c) += n > s_ ? s_ : n;
-                }
+            if (noise < 0) {
+                const auto n_ = -noise;
+                result(r, c) = s - (n_ > s ? s : n_);
+            } else {
+                const auto s_ = max_value - s;
+                result(r, c) = s + (noise > s_ ? s_ : noise);
             }
         }
     }

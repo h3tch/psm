@@ -7,7 +7,7 @@ import vps_py.cpp
 import psm
 
 
-extra_args = ['-O0', '-g']
+extra_args = []#['-O0', '-g']
 
 external = vps_py.cpp.fn(
     name='filter',
@@ -77,7 +77,8 @@ def disk(width: int,
          line_angle: float,
          artifact_size: int,
          radius: float,
-         noise: int = 0,
+         filter_noise: int = 0,
+         bg_noise: int = 0,
          angle_samples: int = 1) -> np.array:
     raise NotImplementedError
 
