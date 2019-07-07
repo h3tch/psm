@@ -19,6 +19,13 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "Python: Animation",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/animate.py",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Python: Build",
             "type": "python",
             "request": "launch",

@@ -55,6 +55,7 @@ namespace {
         real_t fx, fy, lx, ly, sx, sy;
 
         const auto R = ssize_t(filter_radius + 0.5);
+        const real_t maxR = filter_radius + artifact_size;
         const auto c0 = filter_x - R;
         const auto c1 = filter_x + R;
         const auto r0 = filter_y - R;
@@ -78,6 +79,11 @@ namespace {
                 rotate(sincos_offset, center_x, center_y, line_x, line_y);
 
             const real_t ld = lx * line_vector_x - ly * line_vector_y;
+            const real_t fd = fx * line_vector_x - fy * line_vector_y;
+            if (fd - maxR > ld)
+                return minimum;
+            if (fd + maxR < ld)
+                return maximum;
 
             for (ssize_t sample_y = r0; sample_y <= r1; ++sample_y) {
                 for (ssize_t sample_x = c0; sample_x <= c1; ++sample_x) {
