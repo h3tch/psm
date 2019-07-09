@@ -9,17 +9,19 @@ kwargs = {
     'line_x': 80,
     'line_y': 80,
     'line_angle': -5,
-    'artifact_size': 4,
+    'artifact_size': 2,
     'radius': 12,
-    'filter_noise': 5,
+    'filter_noise': 0,
     'bg_noise': 0,
-    'angle_samples': 1
+    'angle_samples': 1,
+    'image_angle': 0
 }
 
 def submit(text):
     try:
         kwargs = json.loads(text)
         kwargs['line_angle'] = np.deg2rad(kwargs['line_angle'])
+        kwargs['image_angle'] = np.deg2rad(kwargs['image_angle'])
         image = psm.filter.disk(160, 160, **kwargs)
         image_widget.set_data(image)
     except:

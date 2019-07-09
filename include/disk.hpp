@@ -47,8 +47,8 @@ namespace {
                            const real_t line_y,
                            const real_t line_angle,
                            const ssize_t artifact_size,
-                           const ssize_t filter_x,
-                           const ssize_t filter_y,
+                           const real_t filter_x,
+                           const real_t filter_y,
                            const real_t filter_radius,
                            const size_t angle_samples)
     {
@@ -56,10 +56,10 @@ namespace {
 
         const auto R = ssize_t(filter_radius + 0.5);
         const real_t maxR = filter_radius + artifact_size;
-        const auto c0 = filter_x - R;
-        const auto c1 = filter_x + R;
-        const auto r0 = filter_y - R;
-        const auto r1 = filter_y + R;
+        const auto c0 = ssize_t(filter_x - R);
+        const auto c1 = ssize_t(filter_x + R);
+        const auto r0 = ssize_t(filter_y - R);
+        const auto r1 = ssize_t(filter_y + R);
         const auto minimum = std::numeric_limits<return_t>::min();
         const auto maximum = std::numeric_limits<return_t>::max();
 
@@ -131,7 +131,8 @@ image_t<pixel_t> disk(const size_t width,
                       const real_t radius,
                       const pixel_t filter_noise,
                       const pixel_t bg_noise,
-                      const size_t angle_samples)
+                      const size_t angle_samples,
+                      const real_t image_angle)
 {
     typedef typename std::make_signed<pixel_t>::type spixel_t;
 
@@ -145,19 +146,26 @@ image_t<pixel_t> disk(const size_t width,
     image_t<pixel_t> result(height, width);
     const auto max_value = std::numeric_limits<pixel_t>::max();
 
+    real_t filter_x, filter_y, random_line_x, random_line_y;
     const auto center_x = width * 0.5;
     const auto center_y = height * 0.5;
+    const real_t sincos[] = {std::sin(image_angle), std::cos(image_angle)};
+    std::tie(random_line_x, random_line_y) =
+        rotate(sincos, center_x, center_y, line_x, line_y);
 
     for (ssize_t r = 0; r < (ssize_t)height; ++r) {
         for (ssize_t c = 0; c < (ssize_t)width; ++c) {
+            std::tie(filter_x, filter_y) =
+                rotate(sincos, center_x, center_y, (real_t)c, (real_t)r);
+
             const pixel_t s = filter<pixel_t>(center_x,
                                               center_y,
                                               line_x,
                                               line_y,
                                               line_angle,
                                               (ssize_t)artifact_size,
-                                              c,
-                                              r,
+                                              filter_x,
+                                              filter_y,
                                               radius,
                                               angle_samples);
 

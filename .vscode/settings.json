@@ -35,5 +35,6 @@
         "cstring": "cpp",
         "deque": "cpp",
         "iostream": "cpp"
-    }
+    },
+    "python.pythonPath": "/home/mh/.pyenv/versions/v3.7.4/bin/python"
 }
