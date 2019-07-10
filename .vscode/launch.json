@@ -12,6 +12,13 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "Python: Stimuli",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/stimuli.py",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Python: App",
             "type": "python",
             "request": "launch",

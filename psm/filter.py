@@ -6,8 +6,7 @@ import numpy as np
 import vps_py.cpp
 import psm
 
-
-extra_args = ['-O0', '-g']
+extra_args = []#['-O0', '-g']
 
 external = vps_py.cpp.fn(
     name='filter',
@@ -15,8 +14,7 @@ external = vps_py.cpp.fn(
     sources=[os.path.join(psm.info.src_dir, 'py', 'filter.cpp')],
     include_dirs=psm.info.include_dirs,
     extra_compile_args=extra_args,
-    extra_link_args=extra_args
-)
+    extra_link_args=extra_args)
 
 
 # returns the positive root of intersection of line y = h with circle centered
@@ -28,8 +26,7 @@ def horizontal_line_circle_intersection(h, r):
 # indefinite integral of circle segment
 def circle_segment_area(x, h, r):
     return 0.5 * (np.sqrt(1 - x * x / (r * r)) * x * r +
-                  r * r * np.arcsin(x / r) -
-                  2 * h * x)
+                  r * r * np.arcsin(x / r) - 2 * h * x)
 
 
 # area of intersection of an infinitely tall box with left edge at x0, right
@@ -76,39 +73,74 @@ def disk(width: int,
          line_y: float,
          line_angle: float,
          artifact_size: int,
-         radius: float,
+         filter_radius: float,
          filter_noise: int = 0,
-         bg_noise: int = 0,
-         angle_samples: int = 1,
          image_angle: float = 0) -> np.array:
     raise NotImplementedError
 
 
-def disk_image(image: np.array, radius: float, noise: int = 0) -> np.array:
-    R = int(radius + 0.5)
-    result = np.empty_like(image)
+def rotate(sin, cos, cx, cy, x, y):
+    tmp_x = x - cx
+    tmp_y = y - cy
+    return cos * tmp_x - sin * tmp_y + cx, sin * tmp_x + cos * tmp_y + cy
 
-    for r in range(image.shape[0]):
-        r0 = int(max(r - R, 0))
-        r1 = int(min(r + R + 1, image.shape[0]))
 
-        for c in range(image.shape[1]):
-            c0 = int(max(c - R, 0))
-            c1 = int(min(c + R + 1, image.shape[1]))
+def rasterize(raster_size, value):
+    rasterized = int(value / raster_size) * raster_size
+    return rasterized if rasterized <= value else rasterized - raster_size
 
-            s = 0
-            A = 0
-            for j in range(r0, r1):
-                for i in range(c0, c1):
-                    color = image[j, i]
-                    a = box_circle_area(
-                        i - 0.5, i + 0.5, j - 0.5, j + 0.5, c, r, radius)
-                    s += color * a
-                    A += a
 
-            s /= A
-            n = random.randint(-noise, noise) if int(s +
-                                                     0.5) != image[r, c] else 0
-            result[r, c] = np.clip(s + n, 0, 255)
+def rasterize_line_y(artifact_size, k, d, x):
+    y = k * x + d
+    y0 = rasterize(artifact_size, y)
+    return y0 if y - y0 < artifact_size / 2 else y0 + artifact_size
 
-    return result
+
+def line_filter(line_x, line_y, line_nx, line_ny, artifact_size, c, r, radius):
+    k = -line_nx / line_ny
+    d = line_y - k * line_x
+
+    c0 = rasterize(artifact_size, c - radius)
+    r0 = rasterize(artifact_size, r - radius)
+
+    if radius <= 0:
+        c1 = c0 + artifact_size
+        r1 = rasterize_line_y(artifact_size, k, d, c0 + artifact_size / 2)
+        return 1 if c0 <= c < c1 and r0 <= r < r1 else 0
+
+    area = 0.0
+    while c0 < c + radius:
+        c1 = c0 + artifact_size
+        r1 = rasterize_line_y(artifact_size, k, d, c0 + artifact_size / 2)
+        area += box_circle_area(c0, c1, r0, r1, c, r, radius)
+        c0 = c1
+
+    circle_area = radius**2 * np.pi
+    return area / circle_area
+
+
+def disk_image(width,
+               height,
+               line_x,
+               line_y,
+               line_angle,
+               artifact_size,
+               filter_radius: float,
+               filter_noise: int = 0,
+               image_rotation: float = 0) -> np.array:
+    result = np.empty((width, height), dtype=np.float64)
+
+    line_nx = -np.sin(line_angle)
+    line_ny = np.cos(line_angle)
+
+    sin = np.sin(image_rotation)
+    cos = np.cos(image_rotation)
+
+    for r in range(height):
+        for c in range(width):
+            fx, fy = rotate(sin, cos, width / 2, height / 2, c, r)
+            result[r, c] = line_filter(line_x, line_y, line_nx, line_ny,
+                                       artifact_size, fx, fy,
+                                       filter_radius)
+
+    return (255 * (result - result.min()) / (result.max() - result.min())).astype(np.uint8)
