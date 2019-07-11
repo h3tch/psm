@@ -1,6 +1,5 @@
 #pragma once
 #include "box.hpp"
-#include "generate.hpp"
 #include <Eigen/Dense>
 #include <cmath>
 #include <cstddef>

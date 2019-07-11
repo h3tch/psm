@@ -1,3 +1,4 @@
+import math
 import os
 import random
 import ctypes
@@ -67,8 +68,8 @@ def box_circle_area(x0, x1, y0, y1, cx, cy, r):
 
 
 @external
-def disk(width: int,
-         height: int,
+def disk(image_width: int,
+         image_height: int,
          line_x: float,
          line_y: float,
          line_angle: float,
@@ -117,6 +118,36 @@ def line_filter(line_x, line_y, line_nx, line_ny, artifact_size, c, r, radius):
 
     circle_area = radius**2 * np.pi
     return area / circle_area
+
+
+def gt(width, height, line_x, line_y, line_angle, filter_radius, image_rotation):
+    result = np.empty((width, height), dtype=np.float64)
+
+    line_nx = -np.sin(line_angle)
+    line_ny = np.cos(line_angle)
+    line_d = line_nx * line_x + line_ny * line_y
+
+    sin = np.sin(image_rotation)
+    cos = np.cos(image_rotation)
+
+    circle_area = filter_radius**2 * math.pi
+
+    for r in range(height):
+        for c in range(width):
+            fx, fy = rotate(sin, cos, width / 2, height / 2, c, r)
+            filter_d = line_nx * fx + line_ny * fy
+            d = line_d - filter_d
+            if d > filter_radius:
+                result[r, c] = 1.0
+            elif d < filter_radius:
+                result[r, c] = 0.0
+            else:
+                r = abs(d)
+                h = filter_radius - r
+                chord_length = 2 * math.sqrt(filter_radius**2 - r**2)
+                area = (2/3)*chord_length*h + h**3/(2*chord_length)
+
+                result[r, c] = area / circle_area if d > 0 else 1 - area / circle_area
 
 
 def disk_image(width,

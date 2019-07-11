@@ -10,10 +10,8 @@ kwargs = {
     'line_y': 80,
     'line_angle': -5,
     'artifact_size': 2,
-    'radius': 12,
+    'filter_radius': 12,
     'filter_noise': 0,
-    'bg_noise': 0,
-    'angle_samples': 1,
     'image_angle': 0
 }
 

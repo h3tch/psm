@@ -18,7 +18,7 @@ os.makedirs(output_folder, exist_ok=True)
 
 for random_rotation, line_angle in zip(random_rotations, line_angles):
     for filter_radius in filter_radii:
-        image = psm.filter.disk_image(width, height, line_x, line_y,
+        image = psm.filter.disk(width, height, line_x, line_y,
                                 np.deg2rad(line_angle), artifact_size,
                                 filter_radius)
         im = Image.fromarray(image)

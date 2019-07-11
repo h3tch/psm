@@ -15,6 +15,8 @@ using scalar_t = typename T::Scalar;
 template <typename T>
 using image_t = Eigen::Matrix<T, -1, -1, Eigen::RowMajor>;
 
+const double pi = 3.141592653589793238462643383279502884197169399375;
+
 // returns the positive root of intersection of line y = h with circle
 // centered at the origin and radius r
 template <typename real_t>

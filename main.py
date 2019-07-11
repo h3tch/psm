@@ -3,7 +3,6 @@ import matplotlib.image as image
 import numpy as np
 from PIL import Image
 import psm.filter
-import psm.generate
 
 artifact_size = 2
 line_angles = [
@@ -26,7 +25,7 @@ noise_intensity = [10]
 # plot.show()
 
 images = [[
-    psm.filter.disk(1000, 1000, 500, 500, np.deg2rad(-5), artifact_size,
+    psm.filter.disk(1000, 1000, 500, 500, np.deg2rad(5), artifact_size,
                     filter_radius, noise)
     for noise, filter_radius in zip(noise_intensity, filter_size)
 ]]
