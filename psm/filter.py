@@ -7,7 +7,7 @@ import numpy as np
 import vps_py.cpp
 import psm
 
-extra_args = []#['-O0', '-g']
+extra_args = ['-O0', '-g']
 
 external = vps_py.cpp.fn(
     name='filter',
@@ -68,12 +68,24 @@ def box_circle_area(x0, x1, y0, y1, cx, cy, r):
 
 
 @external
-def disk(image_width: int,
+def artifact_line(image_width: int,
+                  image_height: int,
+                  line_x: float,
+                  line_y: float,
+                  line_angle: float,
+                  artifact_size: int,
+                  filter_radius: float,
+                  filter_noise: int = 0,
+                  image_angle: float = 0) -> np.array:
+    raise NotImplementedError
+
+
+@external
+def line(image_width: int,
          image_height: int,
          line_x: float,
          line_y: float,
          line_angle: float,
-         artifact_size: int,
          filter_radius: float,
          filter_noise: int = 0,
          image_angle: float = 0) -> np.array:
@@ -120,34 +132,41 @@ def line_filter(line_x, line_y, line_nx, line_ny, artifact_size, c, r, radius):
     return area / circle_area
 
 
-def gt(width, height, line_x, line_y, line_angle, filter_radius, image_rotation):
-    result = np.empty((width, height), dtype=np.float64)
+# def line(image_width: int, image_height: int, line_x: float, line_y: float,
+#          line_angle: float, filter_radius: float, image_angle: float,
+#          **kwargs) -> np.array:
+#     result = np.empty((image_height, image_width), dtype=np.float64)
 
-    line_nx = -np.sin(line_angle)
-    line_ny = np.cos(line_angle)
-    line_d = line_nx * line_x + line_ny * line_y
+#     line_nx = -np.sin(line_angle)
+#     line_ny = np.cos(line_angle)
+#     line_d = line_nx * line_x + line_ny * line_y
 
-    sin = np.sin(image_rotation)
-    cos = np.cos(image_rotation)
+#     sin = np.sin(image_angle)
+#     cos = np.cos(image_angle)
 
-    circle_area = filter_radius**2 * math.pi
+#     circle_area = (19 / 6) * filter_radius**2
 
-    for r in range(height):
-        for c in range(width):
-            fx, fy = rotate(sin, cos, width / 2, height / 2, c, r)
-            filter_d = line_nx * fx + line_ny * fy
-            d = line_d - filter_d
-            if d > filter_radius:
-                result[r, c] = 1.0
-            elif d < filter_radius:
-                result[r, c] = 0.0
-            else:
-                r = abs(d)
-                h = filter_radius - r
-                chord_length = 2 * math.sqrt(filter_radius**2 - r**2)
-                area = (2/3)*chord_length*h + h**3/(2*chord_length)
+#     for r in range(image_height):
+#         for c in range(image_width):
+#             fx, fy = rotate(sin, cos, image_width / 2, image_height / 2, c, r)
+#             filter_d = line_nx * fx + line_ny * fy
+#             d = line_d - filter_d
+#             if d > filter_radius:
+#                 result[r, c] = 1.0
+#             elif d < -filter_radius:
+#                 result[r, c] = 0.0
+#             else:
+#                 h = filter_radius - abs(d)
+#                 chord_length = 2 * math.sqrt(filter_radius**2 - d**2)
+#                 area = (2 / 3) * chord_length * h + h**3 / (2 * chord_length)
 
-                result[r, c] = area / circle_area if d > 0 else 1 - area / circle_area
+#                 if d > 0:
+#                     result[r, c] = 1 - area / circle_area
+#                 else:
+#                     result[r, c] = area / circle_area
+
+#     return (255 * (result - result.min()) /
+#             (result.max() - result.min())).astype(np.uint8)
 
 
 def disk_image(width,
@@ -171,7 +190,7 @@ def disk_image(width,
         for c in range(width):
             fx, fy = rotate(sin, cos, width / 2, height / 2, c, r)
             result[r, c] = line_filter(line_x, line_y, line_nx, line_ny,
-                                       artifact_size, fx, fy,
-                                       filter_radius)
+                                       artifact_size, fx, fy, filter_radius)
 
-    return (255 * (result - result.min()) / (result.max() - result.min())).astype(np.uint8)
+    return (255 * (result - result.min()) /
+            (result.max() - result.min())).astype(np.uint8)

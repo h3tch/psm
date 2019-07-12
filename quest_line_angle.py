@@ -28,7 +28,7 @@ base_condition = {
 conditions = [
     {
         'label': 'angle1',
-        'startVal': 1.0,
+        'startVal': 0.9,
         'startValSd': 0.3,
         'line_angle': np.deg2rad(1)
     },
@@ -71,17 +71,17 @@ def extract_psm_filter_disk_arguments(condition):
     return result
 
 
-def generate_line_image(filter_disk_arguments):
+def generate_line_image(intensity, filter_disk_arguments):
     kwargs = filter_disk_arguments.copy()
-    kwargs['artifact_size'] = 1
-    # kwargs['filter_radius'] = 0
-    return psm.filter.disk(**kwargs)
+    del kwargs['artifact_size']
+    kwargs['filter_radius'] *= intensity
+    return psm.filter.line(**kwargs)
 
 
 def generate_stimuli_image(intensity, filter_disk_arguments):
     kwargs = filter_disk_arguments.copy()
     kwargs['filter_radius'] *= intensity
-    return psm.filter.disk(**kwargs)
+    return psm.filter.artifact_line(**kwargs)
 
 
 def generate_artifact_image(filter_disk_arguments):
@@ -99,8 +99,8 @@ def show_next_stimuli_image():
 
     filter_disk_arguments = extract_psm_filter_disk_arguments(condition)
 
-    # line_image = generate_line_image(filter_disk_arguments)
-    # img_line.set_data(line_image)
+    line_image = generate_line_image(intensity, filter_disk_arguments)
+    img_line.set_data(line_image)
 
     stimuli_image = generate_stimuli_image(intensity, filter_disk_arguments)
     img_stimuli.set_data(stimuli_image)
@@ -130,14 +130,14 @@ def on_can_see_artifact(event):
     show_next_stimuli_image()
 
 
-plot.subplot(1, 3, 1)
+plot.subplot(1, 2, 1)
 plot.axis('off')
 img_line = plot.imshow(np.zeros((image_size, image_size), np.uint8),
                        cmap='gray',
                        vmin=0,
                        vmax=255,
                        interpolation='none')
-plot.subplot(1, 3, 2)
+plot.subplot(1, 2, 2)
 plot.axis('off')
 img_stimuli = plot.imshow(np.zeros((image_size, image_size), np.uint8),
                           cmap='gray',

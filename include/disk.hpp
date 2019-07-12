@@ -59,6 +59,36 @@ namespace {
 
 
     template <typename real_t>
+    inline real_t estimate_circle_area(const real_t radius)
+    {
+        return (19.0 / 6.0) * radius * radius;
+    }
+
+
+    template <typename real_t>
+    inline real_t estimate_circle_segment_area(const real_t radius,
+                                               const real_t distance)
+    {
+        if (distance > radius)
+            return estimate_circle_area(radius);
+
+        if (distance < -radius)
+            return 0.0;
+
+        const auto segment_height = radius - std::abs(distance);
+        const auto chord_length =
+            2.0 * std::sqrt(radius * radius - distance * distance);
+        const auto segment_area =
+            segment_height
+            * ((2.0 / 3.0) * chord_length
+               + segment_height * segment_height / (2.0 * chord_length));
+
+        return distance > 0 ? estimate_circle_area(radius) - segment_area
+                            : segment_area;
+    }
+
+
+    template <typename real_t>
     inline real_t filter_line(const real_t line_x,
                               const real_t line_y,
                               const real_t line_nx,
@@ -109,15 +139,15 @@ namespace {
 } // namespace
 
 template <typename pixel_t, typename real_t>
-image_t<pixel_t> disk(const size_t width,
-                      const size_t height,
-                      const real_t line_x,
-                      const real_t line_y,
-                      const real_t line_angle,
-                      const size_t artifact_size,
-                      const real_t filter_radius,
-                      const pixel_t filter_noise,
-                      const real_t image_angle)
+image_t<pixel_t> artifact_line(const size_t width,
+                               const size_t height,
+                               const real_t line_x,
+                               const real_t line_y,
+                               const real_t line_angle,
+                               const size_t artifact_size,
+                               const real_t filter_radius,
+                               const pixel_t filter_noise,
+                               const real_t image_angle)
 {
     typedef typename std::make_signed<pixel_t>::type spixel_t;
 
@@ -143,7 +173,8 @@ image_t<pixel_t> disk(const size_t width,
             std::tie(filter_x, filter_y) =
                 rotate(sincos, center_x, center_y, (real_t)c, (real_t)r);
 
-            const auto s = pixel_t(0.5 + minimum + maximum
+            const auto s = pixel_t(0.5 + minimum
+                                   + maximum
                                          * filter_line(line_x,
                                                        line_y,
                                                        line_nx,
@@ -165,6 +196,72 @@ image_t<pixel_t> disk(const size_t width,
                 }
             } else {
                 result(r, c) = s;
+            }
+        }
+    }
+
+    return result;
+}
+
+
+template <typename pixel_t, typename real_t>
+image_t<pixel_t> line(const size_t width,
+                      const size_t height,
+                      const real_t line_x,
+                      const real_t line_y,
+                      const real_t line_angle,
+                      const real_t filter_radius,
+                      const pixel_t filter_noise,
+                      const real_t image_angle)
+{
+    typedef typename std::make_signed<pixel_t>::type spixel_t;
+
+    std::random_device rd;
+    std::mt19937 generator(rd());
+    std::uniform_int_distribution<spixel_t> random_filter_noise(-filter_noise,
+                                                                filter_noise);
+
+    image_t<pixel_t> result(height, width);
+
+    real_t filter_x, filter_y;
+    const auto center_x = width * 0.5;
+    const auto center_y = height * 0.5;
+    const auto line_nx = -std::sin(line_angle);
+    const auto line_ny = std::cos(line_angle);
+    const auto line_d = line_nx * line_x + line_ny * line_y;
+    const real_t sincos[] = {std::sin(image_angle), std::cos(image_angle)};
+
+    const auto minimum = std::numeric_limits<pixel_t>::min();
+    const auto maximum = std::numeric_limits<pixel_t>::max();
+
+    const auto circle_area = estimate_circle_area(filter_radius);
+
+    for (ssize_t r = 0; r < (ssize_t)height; ++r) {
+        for (ssize_t c = 0; c < (ssize_t)width; ++c) {
+            std::tie(filter_x, filter_y) =
+                rotate(sincos, center_x, center_y, (real_t)c, (real_t)r);
+
+            const auto filter_d = line_nx * filter_x + line_ny * filter_y;
+            const auto distance = line_d - filter_d;
+            const auto segment_area =
+                estimate_circle_segment_area(filter_radius, distance);
+
+            const auto color =
+                pixel_t(0.5 + minimum + maximum * (segment_area / circle_area));
+
+            if (minimum < color && color < maximum) {
+                const auto noise = random_filter_noise(generator);
+
+                if (noise < 0) {
+                    const auto n_ = -noise;
+                    result(r, c) = color - (n_ > color ? color : n_);
+                } else {
+                    const auto inv_color = maximum - color;
+                    result(r, c) =
+                        color + (noise > inv_color ? inv_color : noise);
+                }
+            } else {
+                result(r, c) = color;
             }
         }
     }

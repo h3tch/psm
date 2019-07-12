@@ -8,22 +8,73 @@ using Image = Eigen::Matrix<T, -1, -1, Eigen::RowMajor>;
 
 
 template <typename T>
-PyObject* npy_disk(const size_t width,
+PyObject* npy_artifact_line(const size_t width,
+                            const size_t height,
+                            const double line_x,
+                            const double line_y,
+                            const double line_angle,
+                            const size_t artifact_size,
+                            const double radius,
+                            const int filter_noise,
+                            const double image_angle)
+{
+    auto result = psm::artifact_line(width,
+                                     height,
+                                     line_x,
+                                     line_y,
+                                     line_angle,
+                                     artifact_size,
+                                     radius,
+                                     (T)filter_noise,
+                                     image_angle);
+    return vps_py::py_object(result);
+}
+
+
+extern "C" PyObject* artifact_line(long width,
+                                   long height,
+                                   double line_x,
+                                   double line_y,
+                                   double line_angle,
+                                   long artifact_size,
+                                   double radius,
+                                   long filter_noise,
+                                   double image_angle)
+{
+    PyGIL lock;
+
+    try {
+        return npy_artifact_line<uint8_t>((size_t)width,
+                                          (size_t)height,
+                                          line_x,
+                                          line_y,
+                                          line_angle,
+                                          (size_t)artifact_size,
+                                          radius,
+                                          (int)filter_noise,
+                                          image_angle);
+    } catch (...) {
+        return exception2py();
+    }
+    return nullptr;
+}
+
+
+template <typename T>
+PyObject* npy_line(const size_t width,
                    const size_t height,
                    const double line_x,
                    const double line_y,
                    const double line_angle,
-                   const size_t artifact_size,
                    const double radius,
                    const int filter_noise,
                    const double image_angle)
 {
-    auto result = psm::disk(width,
+    auto result = psm::line(width,
                             height,
                             line_x,
                             line_y,
                             line_angle,
-                            artifact_size,
                             radius,
                             (T)filter_noise,
                             image_angle);
@@ -31,12 +82,11 @@ PyObject* npy_disk(const size_t width,
 }
 
 
-extern "C" PyObject* disk(long width,
+extern "C" PyObject* line(long width,
                           long height,
                           double line_x,
                           double line_y,
                           double line_angle,
-                          long artifact_size,
                           double radius,
                           long filter_noise,
                           double image_angle)
@@ -44,12 +94,11 @@ extern "C" PyObject* disk(long width,
     PyGIL lock;
 
     try {
-        return npy_disk<uint8_t>((size_t)width,
+        return npy_line<uint8_t>((size_t)width,
                                  (size_t)height,
                                  line_x,
                                  line_y,
                                  line_angle,
-                                 (size_t)artifact_size,
                                  radius,
                                  (int)filter_noise,
                                  image_angle);
