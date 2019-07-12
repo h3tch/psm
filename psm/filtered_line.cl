@@ -48,6 +48,23 @@ float distance_to_line(const float line_x,
     return line_d - d;
 }
 
+void rotate_point_arround_image_center(const unsigned int width,
+                                       const unsigned int height,
+                                       const float image_angle,
+                                       float* x,
+                                       float* y)
+{
+    const float image_center_x = (float)width * 0.5f;
+    const float image_center_y = (float)height * 0.5f;
+    const float image_angle_sin = sin(image_angle);
+    const float image_angle_cos = cos(image_angle);
+
+    const float tmp_x = *x - image_center_x;
+    const float tmp_y = *y - image_center_y;
+    *x = image_angle_cos * tmp_x - image_angle_sin * tmp_y + image_center_x;
+    *y = image_angle_sin * tmp_x + image_angle_cos * tmp_y + image_center_y;
+}
+
 __kernel void filtered_line(const unsigned int width,
                             const unsigned int height,
                             const float line_x,
@@ -57,22 +74,17 @@ __kernel void filtered_line(const unsigned int width,
                             const float image_angle,
                             __write_only image2d_t result)
 {
-    const int x = get_global_id(0);
-    const int y = get_global_id(1);
+    const int col = get_global_id(0);
+    const int row = get_global_id(1);
 
-    const float image_center_x = (float)width * 0.5f;
-    const float image_center_y = (float)height * 0.5f;
-    const float image_angle_sin = sin(image_angle);
-    const float image_angle_cos = cos(image_angle);
+    float filter_x = (float)col;
+    float filter_y = (float)row;
 
-    const float tmp_x = (float)x - image_center_x;
-    const float tmp_y = (float)y - image_center_y;
-    const float filter_x = image_angle_cos * tmp_x - image_angle_sin * tmp_y + image_center_x;
-    const float filter_y = image_angle_sin * tmp_x + image_angle_cos * tmp_y + image_center_y;
+    rotate_point_arround_image_center(width, height, image_angle, &filter_x, &filter_y);
 
     const float distance = distance_to_line(line_x, line_y, line_angle, filter_x, filter_y);
 
     const float color = estimate_circle_line_overlap(filter_radius, distance);
 
-    write_imagef(result, (int2)(x, y), (float4)(color, 0.0f, 0.0f, 1.0f));
+    write_imagef(result, (int2)(col, row), (float4)(color, 0.0f, 0.0f, 1.0f));
 }

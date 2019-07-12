@@ -28,7 +28,7 @@ base_condition = {
 conditions = [
     {
         'label': 'angle1',
-        'startVal': 0.8,
+        'startVal': 0.9,
         'startValSd': 0.2,
         'line_angle': np.deg2rad(1)
     },

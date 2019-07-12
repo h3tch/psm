@@ -16,10 +16,17 @@ mem = cl.mem_flags
 
 with open(os.path.join(os.path.dirname(__file__), 'filtered_line.cl'),
           'r') as source_file:
-    src = source_file.read()
+    filter_line_src = source_file.read()
 
-program = cl.Program(context, src).build()
-line_result_image = None
+with open(os.path.join(os.path.dirname(__file__), 'filtered_line_artifact.cl'),
+          'r') as source_file:
+    filter_line_artifact_src = source_file.read()
+
+filter_line_program = cl.Program(context, filter_line_src).build()
+filter_line_artifact_program = cl.Program(context,
+                                          filter_line_artifact_src).build()
+result_image = None
+artifact_result_image = None
 
 extra_args = ['-O0', '-g']
 
@@ -81,7 +88,6 @@ def box_circle_area(x0, x1, y0, y1, cx, cy, r):
     return box_centered_circle_area(x0 - cx, x1 - cx, y0 - cy, y1 - cy, r)
 
 
-@external
 def artifact_line(image_width: int,
                   image_height: int,
                   line_x: float,
@@ -91,7 +97,26 @@ def artifact_line(image_width: int,
                   filter_radius: float,
                   filter_noise: int = 0,
                   image_angle: float = 0) -> np.array:
-    raise NotImplementedError
+    global artifact_result_image
+    shape = (image_height, image_width)
+
+    if artifact_result_image is None or artifact_result_image.width != image_width or artifact_result_image.height != image_height:
+        fmt = cl.ImageFormat(cl.channel_order.R, cl.channel_type.FLOAT)
+        artifact_result_image = cl.Image(context, mem.WRITE_ONLY, fmt, shape)
+
+    filter_line_artifact_program.filtered_line_artifact(
+        command_queue, shape, None, np.uint32(image_width),
+        np.uint32(image_height), np.uint32(artifact_size), np.float32(line_x),
+        np.float32(line_y), np.float32(line_angle), np.float32(filter_radius),
+        np.float32(image_angle), artifact_result_image)
+
+    result = np.zeros(shape, np.float32)
+    cl.enqueue_copy(command_queue,
+                    result,
+                    artifact_result_image,
+                    origin=(0, 0),
+                    region=shape)
+    return (255 * result).astype(np.uint8)
 
 
 def line(image_width: int,
@@ -102,18 +127,20 @@ def line(image_width: int,
          filter_radius: float,
          filter_noise: int = 0,
          image_angle: float = 0) -> np.array:
-    global line_result_image
+    global result_image
+    shape = (image_height, image_width)
 
-    if line_result_image is None or line_result_image.width != image_width or line_result_image.height != image_height:
+    if result_image is None or result_image.width != image_width or result_image.height != image_height:
         fmt = cl.ImageFormat(cl.channel_order.R, cl.channel_type.FLOAT)
-        shape = (image_height, image_width)
         result_image = cl.Image(context, mem.WRITE_ONLY, fmt, shape)
 
-    program.filtered_line(command_queue, shape, None, np.uint32(image_width),
-                          np.uint32(image_height), np.float32(line_x),
-                          np.float32(line_y), np.float32(line_angle),
-                          np.float32(filter_radius), np.float32(image_angle),
-                          result_image)
+    filter_line_program.filtered_line(command_queue, shape, None,
+                                      np.uint32(image_width),
+                                      np.uint32(image_height),
+                                      np.float32(line_x), np.float32(line_y),
+                                      np.float32(line_angle),
+                                      np.float32(filter_radius),
+                                      np.float32(image_angle), result_image)
     result = np.zeros(shape, np.float32)
     cl.enqueue_copy(command_queue,
                     result,
