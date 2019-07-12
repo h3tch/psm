@@ -28,8 +28,8 @@ base_condition = {
 conditions = [
     {
         'label': 'angle1',
-        'startVal': 0.9,
-        'startValSd': 0.3,
+        'startVal': 0.8,
+        'startValSd': 0.2,
         'line_angle': np.deg2rad(1)
     },
     # {
@@ -55,7 +55,7 @@ conditions = [
 conditions = [{**base_condition, **c} for c in conditions]
 
 quests = psychopy.data.MultiStairHandler(conditions=conditions,
-                                         nTrials=40,
+                                         nTrials=30,
                                          stairType='QUEST')
 
 
@@ -98,15 +98,17 @@ def show_next_stimuli_image():
         exit(0)
 
     filter_disk_arguments = extract_psm_filter_disk_arguments(condition)
-
     line_image = generate_line_image(intensity, filter_disk_arguments)
-    img_line.set_data(line_image)
-
     stimuli_image = generate_stimuli_image(intensity, filter_disk_arguments)
-    img_stimuli.set_data(stimuli_image)
 
-    # artifact_image = generate_artifact_image(filter_disk_arguments)
-    # img_artifact.set_data(artifact_image)
+    flip = random.random() < 0.5
+    if flip:
+        left_image, right_image = stimuli_image, line_image
+    else:
+        left_image, right_image = line_image, stimuli_image
+
+    img_left.set_data(left_image)
+    img_right.set_data(right_image)
 
     plot.draw()
 
@@ -132,33 +134,26 @@ def on_can_see_artifact(event):
 
 plot.subplot(1, 2, 1)
 plot.axis('off')
-img_line = plot.imshow(np.zeros((image_size, image_size), np.uint8),
+img_left = plot.imshow(np.zeros((image_size, image_size), np.uint8),
                        cmap='gray',
                        vmin=0,
                        vmax=255,
                        interpolation='none')
 plot.subplot(1, 2, 2)
 plot.axis('off')
-img_stimuli = plot.imshow(np.zeros((image_size, image_size), np.uint8),
+img_right = plot.imshow(np.zeros((image_size, image_size), np.uint8),
                           cmap='gray',
                           vmin=0,
                           vmax=255,
                           interpolation='none')
-# plot.subplot(1, 3, 3)
-# plot.axis('off')
-# img_artifact = plot.imshow(np.zeros((image_size, image_size), np.uint8),
-#                            cmap='gray',
-#                            vmin=0,
-#                            vmax=255,
-#                            interpolation='none')
 
 show_next_stimuli_image()
 
 ax_is_line = plot.axes([0.1, 0.05, 0.1, 0.075])
 ax_is_artifact = plot.axes([0.8, 0.05, 0.1, 0.075])
 
-btn_line = Button(ax_is_line, 'Line')
-btn_artifact = Button(ax_is_artifact, 'Artifact')
+btn_line = Button(ax_is_line, 'Same')
+btn_artifact = Button(ax_is_artifact, 'Different')
 
 btn_line.on_clicked(on_cannot_see_artifact)
 btn_artifact.on_clicked(on_can_see_artifact)
@@ -168,15 +163,3 @@ fig.patch.set_facecolor((0.8, 0.8, 0.8))
 
 plot.tight_layout()
 plot.show()
-
-# for intensity, condition in quests:
-#     image = generate_stimuli_image(intensity, condition)
-#     image_widget.set_data(image)
-#     plot.draw()
-
-#     quests.addResponse(1)  # this is ESSENTIAL
-
-# # save data as multiple formats
-# quests.saveAsExcel('line_angle_quest.xlsx')
-# quests.saveAsJson('line_angle_quest.json')
-# quests.saveAsPickle('line_angle_quest')

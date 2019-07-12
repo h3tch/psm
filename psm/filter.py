@@ -3,9 +3,23 @@ import os
 import random
 import ctypes
 import numpy as np
+import pyopencl as cl
 
 import vps_py.cpp
 import psm
+
+platforms = cl.get_platforms()
+device = platforms[-1].get_devices()
+context = cl.Context(device)
+command_queue = cl.CommandQueue(context)
+mem = cl.mem_flags
+
+with open(os.path.join(os.path.dirname(__file__), 'filtered_line.cl'),
+          'r') as source_file:
+    src = source_file.read()
+
+program = cl.Program(context, src).build()
+line_result_image = None
 
 extra_args = ['-O0', '-g']
 
@@ -80,7 +94,6 @@ def artifact_line(image_width: int,
     raise NotImplementedError
 
 
-@external
 def line(image_width: int,
          image_height: int,
          line_x: float,
@@ -89,7 +102,25 @@ def line(image_width: int,
          filter_radius: float,
          filter_noise: int = 0,
          image_angle: float = 0) -> np.array:
-    raise NotImplementedError
+    global line_result_image
+
+    if line_result_image is None or line_result_image.width != image_width or line_result_image.height != image_height:
+        fmt = cl.ImageFormat(cl.channel_order.R, cl.channel_type.FLOAT)
+        shape = (image_height, image_width)
+        result_image = cl.Image(context, mem.WRITE_ONLY, fmt, shape)
+
+    program.filtered_line(command_queue, shape, None, np.uint32(image_width),
+                          np.uint32(image_height), np.float32(line_x),
+                          np.float32(line_y), np.float32(line_angle),
+                          np.float32(filter_radius), np.float32(image_angle),
+                          result_image)
+    result = np.zeros(shape, np.float32)
+    cl.enqueue_copy(command_queue,
+                    result,
+                    result_image,
+                    origin=(0, 0),
+                    region=shape)
+    return (255 * result).astype(np.uint8)
 
 
 def rotate(sin, cos, cx, cy, x, y):

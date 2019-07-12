@@ -21,5 +21,5 @@ fig = plot.figure()
 
 frames = [[plot.imshow(image, cmap='gray', vmin=0, vmax=255)] for image in images_a]
 
-ani = animation.ArtistAnimation(fig, frames + frames[::-1], interval=16, blit=True)
+ani = animation.ArtistAnimation(fig, frames + frames[::-1], interval=16)
 plot.show()
