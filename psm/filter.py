@@ -14,17 +14,19 @@ context = cl.Context(device)
 command_queue = cl.CommandQueue(context)
 mem = cl.mem_flags
 
-with open(os.path.join(os.path.dirname(__file__), 'filtered_line.cl'),
-          'r') as source_file:
+filt_path = os.path.dirname(__file__)
+with open(os.path.join(filt_path, 'filtered_line.cl'), 'r') as source_file:
     filter_line_src = source_file.read()
 
-with open(os.path.join(os.path.dirname(__file__), 'filtered_line_artifact.cl'),
+with open(os.path.join(filt_path, 'filtered_line_artifact.cl'),
           'r') as source_file:
     filter_line_artifact_src = source_file.read()
 
-filter_line_program = cl.Program(context, filter_line_src).build()
-filter_line_artifact_program = cl.Program(context,
-                                          filter_line_artifact_src).build()
+build_options = ['-I', f'"{filt_path}"']
+filter_line_program = cl.Program(context,
+                                 filter_line_src).build(options=build_options)
+filter_line_artifact_program = cl.Program(
+    context, filter_line_artifact_src).build(options=build_options)
 result_image = None
 artifact_result_image = None
 
