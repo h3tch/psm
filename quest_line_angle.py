@@ -1,9 +1,15 @@
+import math
 import numpy as np
 import psychopy.data
 import psm.filter
 import random
+import matplotlib.animation
 import matplotlib.pyplot as plot
 from matplotlib.widgets import Button
+
+import tkinter as tk
+import PIL.Image
+import PIL.ImageTk
 
 increase_radius_response = 0
 decrease_radius_response = 1
@@ -58,68 +64,94 @@ quests = psychopy.data.MultiStairHandler(conditions=conditions,
                                          nTrials=30,
                                          stairType='QUEST')
 
+line = psm.filter.Line(image_size, image_size)
+artifact_line = psm.filter.ArtifactLine(image_size, image_size)
 
-def extract_psm_filter_disk_arguments(condition):
-    keys = ('image_width', 'image_height', 'line_x', 'line_y', 'line_angle',
-            'artifact_size', 'filter_noise')
+
+def generate_animation(generator_function, generator_arguments, velocity):
+    kwargs = generator_arguments.copy()
+
+    filter_radius = kwargs['filter_radius']
+    line_x = kwargs['line_x']
+    line_y = kwargs['line_y']
+    line_angle = kwargs['line_angle']
+    line_nx = -np.sin(line_angle)
+    line_ny = np.cos(line_angle)
+
+    if velocity == 0:
+        start_x = line_x
+        start_y = line_y
+        step_x = 1
+        step_y = 1
+        stop_x = line_x + 1
+        stop_y = line_y + 1
+    else:
+        image_radius = math.sqrt(2 * image_size**2) + filter_radius
+        start_x = line_x - image_radius * line_nx
+        start_y = line_y - image_radius * line_ny
+        step_x = line_nx * velocity
+        step_y = line_ny * velocity
+        stop_x = line_x + image_radius * line_nx
+        stop_y = line_y + image_radius * line_ny
+
+    images = []
+    for line_x, line_y in zip(np.arange(start_x, stop_x, step_x),
+                              np.arange(start_y, stop_y, step_y)):
+        kwargs['line_x'] = line_x
+        kwargs['line_y'] = line_y
+        images.append(generator_function(**kwargs))
+
+    return images
+
+
+def generate_line_image(line_function_arguments):
+    kwargs = line_function_arguments.copy()
+    del kwargs['artifact_size']
+    return line(**kwargs)
+
+
+def generate_stimuli_image(artifact_line_function_arguments):
+    return artifact_line(**artifact_line_function_arguments)
+
+
+def extract_psm_filter_disk_arguments(intensity, condition):
+    keys = ('line_x', 'line_y', 'line_angle', 'artifact_size', 'filter_noise')
     result = dict((k, condition[k]) for k in keys)
-    result['filter_radius'] = condition['max_filter_radius']
-    result['line_x'] += 6 * (random.random() - 0.5) * condition['artifact_size']
-    result['line_y'] += 6 * (random.random() - 0.5) * condition['artifact_size']
-    result['filter_radius'] = condition['max_filter_radius']
+    result['filter_radius'] = condition['max_filter_radius'] * intensity
+    result['line_x'] += 6 * (random.random() -
+                             0.5) * condition['artifact_size']
+    result['line_y'] += 6 * (random.random() -
+                             0.5) * condition['artifact_size']
     result['image_angle'] = np.deg2rad(random.randrange(0, 360))
     return result
 
 
-def generate_line_image(intensity, filter_disk_arguments):
-    kwargs = filter_disk_arguments.copy()
-    del kwargs['artifact_size']
-    kwargs['filter_radius'] *= intensity
-    return psm.filter.line(**kwargs)
-
-
-def generate_stimuli_image(intensity, filter_disk_arguments):
-    kwargs = filter_disk_arguments.copy()
-    kwargs['filter_radius'] *= intensity
-    return psm.filter.artifact_line(**kwargs)
-
-
-def generate_artifact_image(filter_disk_arguments):
-    return generate_stimuli_image(0.0, filter_disk_arguments)
-
-
 def show_next_stimuli_image():
     try:
-        intensity, condition = quests.next()
+        quests.next()
     except StopIteration:
         quests.saveAsExcel('line_angle_quest.xlsx')
         # quests.saveAsJson('line_angle_quest.json')
         # quests.saveAsPickle('line_angle_quest.pickle')
         exit(0)
 
-    filter_disk_arguments = extract_psm_filter_disk_arguments(condition)
-    line_image = generate_line_image(intensity, filter_disk_arguments)
-    stimuli_image = generate_stimuli_image(intensity, filter_disk_arguments)
+    intensity = quests.currentStaircase.intensities[-1]
+    condition = quests.currentStaircase.condition
+
+    filter_disk_arguments = extract_psm_filter_disk_arguments(intensity, condition)
+    line_image = generate_line_image(filter_disk_arguments)
+    stimuli_image = generate_stimuli_image(filter_disk_arguments)
 
     flip = random.random() < 0.5
     if flip:
-        left_image, right_image = stimuli_image, line_image
+        left_image, right_image = stimuli_image[0], line_image[0]
     else:
-        left_image, right_image = line_image, stimuli_image
+        left_image, right_image = line_image[0], stimuli_image[0]
 
     img_left.set_data(left_image)
     img_right.set_data(right_image)
 
     plot.draw()
-
-
-def get_ax_size(ax):
-    fig = plot.gcf()
-    bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-    width, height = bbox.width, bbox.height
-    width *= fig.dpi
-    height *= fig.dpi
-    return width, height
 
 
 def on_cannot_see_artifact(event):
@@ -131,35 +163,43 @@ def on_can_see_artifact(event):
     quests.addResponse(increase_radius_response)
     show_next_stimuli_image()
 
+import threading
+import time
 
-plot.subplot(1, 2, 1)
-plot.axis('off')
-img_left = plot.imshow(np.zeros((image_size, image_size), np.uint8),
-                       cmap='gray',
-                       vmin=0,
-                       vmax=255,
-                       interpolation='none')
-plot.subplot(1, 2, 2)
-plot.axis('off')
-img_right = plot.imshow(np.zeros((image_size, image_size), np.uint8),
-                          cmap='gray',
-                          vmin=0,
-                          vmax=255,
-                          interpolation='none')
+def draw_stimuli(*args):
+    while True:
+        intensity = quests.currentStaircase.intensities[-1]
+        condition = quests.currentStaircase.condition
 
-show_next_stimuli_image()
+        filter_disk_arguments = extract_psm_filter_disk_arguments(intensity, condition)
+        line_image = generate_line_image(filter_disk_arguments)
+        stimuli_image = generate_stimuli_image(filter_disk_arguments)
 
-ax_is_line = plot.axes([0.1, 0.05, 0.1, 0.075])
-ax_is_artifact = plot.axes([0.8, 0.05, 0.1, 0.075])
+        img = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(line_image))
+        left_canvas.config(image=img)
+        left_canvas.image = img
 
-btn_line = Button(ax_is_line, 'Same')
-btn_artifact = Button(ax_is_artifact, 'Different')
+        img = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(stimuli_image))
+        right_canvas.config(image=img)
+        right_canvas.image = img
 
-btn_line.on_clicked(on_cannot_see_artifact)
-btn_artifact.on_clicked(on_can_see_artifact)
+        time.sleep(0.001)
 
-fig = plot.gcf()
-fig.patch.set_facecolor((0.8, 0.8, 0.8))
+quests.next()
 
-plot.tight_layout()
-plot.show()
+root = tk.Tk()
+
+left_canvas = tk.Label(root, width=image_size, height=image_size)
+right_canvas = tk.Label(root, width=image_size, height=image_size)
+different_button = tk.Button(root, text="Different")
+cannot_decide_button = tk.Button(root, text="Cannot Decide")
+
+left_canvas.grid(column=0, row=0, columnspan=10, rowspan=10)
+right_canvas.grid(column=10, row=0, columnspan=10, rowspan=10)
+different_button.grid(column=0, row=10, columnspan=10, rowspan=1)
+cannot_decide_button.grid(column=10, row=10, columnspan=10, rowspan=1)
+
+thread = threading.Thread(target=draw_stimuli, args=(left_canvas, right_canvas))
+thread.start()
+
+root.mainloop()
