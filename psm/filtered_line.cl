@@ -1,6 +1,53 @@
 #include "image_rotation.cl" // rotate_point_arround_image_center, rotate_point
-#include "box_circle_area.cl" // box_circle_area
 
+float estimate_circle_area(const float radius)
+{
+    return (19.0f / 6.0f) * radius * radius;
+}
+
+float estimate_circle_segment_area(const float radius,
+                                   const float distance,
+                                   const float circle_area)
+{
+    if (distance > radius)
+        return circle_area;
+
+    if (distance < -radius)
+        return 0.0f;
+
+    const float segment_height = radius - fabs(distance);
+    const float chord_length =
+        2.0f * sqrt(radius * radius - distance * distance);
+    const float segment_area =
+        segment_height
+        * ((2.0f / 3.0f) * chord_length
+            + segment_height * segment_height / (2.0f * chord_length));
+
+    return distance > 0 ? circle_area - segment_area
+                        : segment_area;
+}
+
+float estimate_circle_line_overlap(const float radius,
+                                   const float distance)
+{
+    const float filter_area = estimate_circle_area(radius);
+    const float segment_area =
+        estimate_circle_segment_area(radius, distance, filter_area);
+    return segment_area / filter_area;
+}
+
+float distance_to_line(const float line_x,
+                       const float line_y,
+                       const float line_angle,
+                       const float x,
+                       const float y)
+{
+    const float line_nx = sin(line_angle);
+    const float line_ny = cos(line_angle);
+    const float line_d = line_nx * line_x + line_ny * line_y;
+    const float d = line_nx * x + line_ny * y;
+    return line_d - d;
+}
 
 __kernel void filtered_line(const unsigned int width,
                             const unsigned int height,
@@ -19,17 +66,9 @@ __kernel void filtered_line(const unsigned int width,
 
     rotate_point_arround_image_center(width, height, image_angle, &filter_x, &filter_y);
 
-    rotate_point(line_x, line_y, line_angle, &filter_x, &filter_y);
+    const float distance = distance_to_line(line_x, line_y, line_angle, filter_x, filter_y);
 
-    const double radius = (double)filter_radius;
-    const double c0 = -(double)width;
-    const double c1 = 2 * (double)width;
-    const double r0 = -(double)height;
-    const double r1 = (double)line_y;
-    const double area = box_circle_area(c0, c1, r0, r1, (double)filter_x, (double)filter_y, radius);
-    const double circle_area = radius * radius * M_PI;
-
-    const float color = (float)(area / circle_area);
+    const float color = estimate_circle_line_overlap(filter_radius, distance);
 
     write_imagef(result, (int2)(col, row), (float4)(color, 0.0f, 0.0f, 1.0f));
 }

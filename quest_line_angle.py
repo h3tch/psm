@@ -36,7 +36,8 @@ conditions = [
         'label': 'angle1',
         'startVal': 0.9,
         'startValSd': 0.2,
-        'line_angle': np.deg2rad(1)
+        'line_angle': np.deg2rad(1),
+        'velocity': 100.0
     },
     # {
     #     'label': 'angle10',
@@ -68,90 +69,23 @@ line = psm.filter.Line(image_size, image_size)
 artifact_line = psm.filter.ArtifactLine(image_size, image_size)
 
 
-def generate_animation(generator_function, generator_arguments, velocity):
-    kwargs = generator_arguments.copy()
+def compute_line_animation_samples(line_x,
+                                   line_y,
+                                   line_angle,
+                                   velocity,
+                                   samples_per_second):
+    if velocity == 0.0:
+        return [(line_x, line_y)]
 
-    filter_radius = kwargs['filter_radius']
-    line_x = kwargs['line_x']
-    line_y = kwargs['line_y']
-    line_angle = kwargs['line_angle']
     line_nx = -np.sin(line_angle)
     line_ny = np.cos(line_angle)
 
-    if velocity == 0:
-        start_x = line_x
-        start_y = line_y
-        step_x = 1
-        step_y = 1
-        stop_x = line_x + 1
-        stop_y = line_y + 1
-    else:
-        image_radius = math.sqrt(2 * image_size**2) + filter_radius
-        start_x = line_x - image_radius * line_nx
-        start_y = line_y - image_radius * line_ny
-        step_x = line_nx * velocity
-        step_y = line_ny * velocity
-        stop_x = line_x + image_radius * line_nx
-        stop_y = line_y + image_radius * line_ny
+    sample_velocity = velocity / samples_per_second
 
-    images = []
-    for line_x, line_y in zip(np.arange(start_x, stop_x, step_x),
-                              np.arange(start_y, stop_y, step_y)):
-        kwargs['line_x'] = line_x
-        kwargs['line_y'] = line_y
-        images.append(generator_function(**kwargs))
+    samples = np.append(np.arange(-velocity, velocity, sample_velocity),
+                        velocity)
 
-    return images
-
-
-def generate_line_image(line_function_arguments):
-    kwargs = line_function_arguments.copy()
-    del kwargs['artifact_size']
-    return line(**kwargs)
-
-
-def generate_stimuli_image(artifact_line_function_arguments):
-    return artifact_line(**artifact_line_function_arguments)
-
-
-def extract_psm_filter_disk_arguments(intensity, condition):
-    keys = ('line_x', 'line_y', 'line_angle', 'artifact_size', 'filter_noise')
-    result = dict((k, condition[k]) for k in keys)
-    result['filter_radius'] = condition['max_filter_radius'] * intensity
-    result['line_x'] += 6 * (random.random() -
-                             0.5) * condition['artifact_size']
-    result['line_y'] += 6 * (random.random() -
-                             0.5) * condition['artifact_size']
-    result['image_angle'] = np.deg2rad(random.randrange(0, 360))
-    return result
-
-
-def show_next_stimuli_image():
-    try:
-        quests.next()
-    except StopIteration:
-        quests.saveAsExcel('line_angle_quest.xlsx')
-        # quests.saveAsJson('line_angle_quest.json')
-        # quests.saveAsPickle('line_angle_quest.pickle')
-        exit(0)
-
-    intensity = quests.currentStaircase.intensities[-1]
-    condition = quests.currentStaircase.condition
-
-    filter_disk_arguments = extract_psm_filter_disk_arguments(intensity, condition)
-    line_image = generate_line_image(filter_disk_arguments)
-    stimuli_image = generate_stimuli_image(filter_disk_arguments)
-
-    flip = random.random() < 0.5
-    if flip:
-        left_image, right_image = stimuli_image[0], line_image[0]
-    else:
-        left_image, right_image = line_image[0], stimuli_image[0]
-
-    img_left.set_data(left_image)
-    img_right.set_data(right_image)
-
-    plot.draw()
+    return [(line_x + line_nx * d, line_y + line_ny * d) for d in samples]
 
 
 def on_cannot_see_artifact(event):
@@ -163,31 +97,131 @@ def on_can_see_artifact(event):
     quests.addResponse(increase_radius_response)
     show_next_stimuli_image()
 
+
 import threading
 import time
+import timeit
+import sys
+import math
+
+# def _segment_area(segment_height, chord_length):
+#     return segment_height * ((2.0 / 3.0) * chord_length + segment_height * segment_height / (2.0 * chord_length) if chord_length > 0.0 else 0.0)
+
+# def _excess_area(x, y, max_x, radius, radius2):
+#     x = min(x, max_x)
+#     circle_y = math.sqrt(radius2 - x * x)
+
+#     x_segment_area = _segment_area(radius - x, 2.0 * circle_y)
+#     max_x_segment_area = _segment_area(radius - max_x, 2.0 * y)
+#     rect_area = (max_x - x) * y
+#     return (x_segment_area - max_x_segment_area) / 2.0 - rect_area
+
+# def estimate_circle_interval_area(x0, x1, radius):
+#     radius2 = radius * radius
+#     left_area = _segment_area(radius - min(abs(x0), radius), 2.0 * math.sqrt(radius2 - x0 * x0))
+#     right_area = _segment_area(radius - min(abs(x1), radius), 2.0 * math.sqrt(radius2 - x1 * x1))
+#     circle_area = (19.0 / 6.0) * radius2
+
+#     if x0 > 0:
+#         left_area = circle_area - left_area
+#     if x1 < 0:
+#         right_area = circle_area - right_area
+
+#     return circle_area - left_area - right_area
+
+# def estimate_circle_segment_area(x0, x1, y, radius):
+#     y = min(y, radius)
+#     radius2 = radius * radius
+#     max_x = math.sqrt(radius2 - y * y)
+
+#     segment_area = _segment_area(radius - y, 2.0 * max_x)
+
+#     left_area = _excess_area(abs(x0), y, max_x, radius, radius2)
+#     if x0 > 0:
+#         left_area = segment_area - left_area
+
+#     right_area = _excess_area(abs(x1), y, max_x, radius, radius2)
+#     if x1 < 0:
+#         right_area = segment_area - right_area
+
+#     return segment_area - left_area - right_area
+
+
+# a0 = estimate_circle_interval_area(1, 3, 5)
+# a0 = estimate_circle_segment_area(-6, 1, 0.1, 5)
+# a0 = estimate_circle_segment_area(-6, 6, 0.1, 5)
+# a0 = estimate_circle_segment_area(-6, 6, -1, 5)
+
+
+def draw_image_on_canvas(canvas, tkimage):
+    canvas.config(image=tkimage)
+    canvas.image = tkimage
+
+
+def np2tk(image):
+    return PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(image))
+
 
 def draw_stimuli(*args):
-    while True:
-        intensity = quests.currentStaircase.intensities[-1]
-        condition = quests.currentStaircase.condition
+    global quests
+    intensity = quests.currentStaircase.intensities[-1]
+    condition = quests.currentStaircase.condition
+    samples_per_second = 60
 
-        filter_disk_arguments = extract_psm_filter_disk_arguments(intensity, condition)
-        line_image = generate_line_image(filter_disk_arguments)
-        stimuli_image = generate_stimuli_image(filter_disk_arguments)
+    line_x = condition['line_x']
+    line_y = condition['line_y']
+    line_angle = condition['line_angle']
+    velocity = condition['velocity']
+    artifact_size = condition['artifact_size']
+    max_filter_radius = condition['max_filter_radius']
+    filter_noise = condition['filter_noise']
 
-        img = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(line_image))
-        left_canvas.config(image=img)
-        left_canvas.image = img
+    filter_radius = max_filter_radius * intensity
+    line_x += 6 * (random.random() - 0.5) * artifact_size
+    line_y += 6 * (random.random() - 0.5) * artifact_size
+    image_angle = 2 * np.pi * random.random()
 
-        img = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(stimuli_image))
-        right_canvas.config(image=img)
-        right_canvas.image = img
+    line_positions = compute_line_animation_samples(line_x, line_y, line_angle,
+                                                    velocity,
+                                                    samples_per_second)
+
+    def generate_line_image(point):
+        return np2tk(line(point[0], point[1], line_angle, filter_radius, filter_noise,
+                 image_angle))
+
+    def generate_artifact_image(point):
+        return np2tk(artifact_line(point[0], point[1], line_angle, artifact_size,
+                          filter_radius, filter_noise, image_angle))
+
+    start = time.time_ns()
+    line_images = [generate_line_image(point) for point in line_positions]
+    dt1 = time.time_ns() - start
+    artifact_images = [generate_artifact_image(point) for point in line_positions]
+    dt = time.time_ns() - start
+    dt2 = dt - dt1
+
+    print('dt:', dt / 1e9, '(s); dt1:', (dt1 / len(line_positions)) / 1e6, '(ms); dt2:', (dt2 / len(line_positions)) / 1e6, '(ms)')
+    # exit(0)
+
+    min_time = sys.maxsize
+
+    while quests is not None:
+        start = time.time_ns()
+        draw_image_on_canvas(left_canvas, line_images[0])
+        draw_image_on_canvas(right_canvas, artifact_images[0])
+        end = time.time_ns()
+
+        min_time = min(min_time, end - start)
 
         time.sleep(0.001)
+
 
 quests.next()
 
 root = tk.Tk()
+
+# draw_stimuli()
+
 
 left_canvas = tk.Label(root, width=image_size, height=image_size)
 right_canvas = tk.Label(root, width=image_size, height=image_size)
@@ -199,7 +233,8 @@ right_canvas.grid(column=10, row=0, columnspan=10, rowspan=10)
 different_button.grid(column=0, row=10, columnspan=10, rowspan=1)
 cannot_decide_button.grid(column=10, row=10, columnspan=10, rowspan=1)
 
-thread = threading.Thread(target=draw_stimuli, args=(left_canvas, right_canvas))
+thread = threading.Thread(target=draw_stimuli,
+                          args=(left_canvas, right_canvas))
 thread.start()
 
 root.mainloop()

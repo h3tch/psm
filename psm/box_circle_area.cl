@@ -14,12 +14,10 @@ double _infinit_box_centered_circle_area(const double x0,
                                          const double y,
                                          const double r)
 {
-    if (y >= r)
-        return 0.0f;
     const double x = sqrt(r * r - y * y);
     const double a0 = _circle_segment_area(min(max(x0, -x), x), y, r);
     const double a1 = _circle_segment_area(min(max(x1, -x), x), y, r);
-    return (float)(a1 - a0);
+    return a1 - a0;
 }
 
 // area of the intersection of a finite box with
@@ -44,6 +42,9 @@ double box_centered_circle_area(const double x0,
                                 const double y1,
                                 const double r)
 {
+    // const double a0 = _infinit_box_centered_circle_area(x0, x1, fabs(y0), r);
+    // const double a1 = _infinit_box_centered_circle_area(x0, x1, fabs(y1), r);
+    // return y0 < 0 ? (y1 < 0 ? a0 - a1 : a0 + a1) : a1 - a0;
     if (y0 < 0.0f) {
         if (y1 < 0.0f)
             // the box is completely under, just flip it above and try again
