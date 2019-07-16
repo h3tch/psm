@@ -166,7 +166,7 @@ def draw_stimuli(*args):
     global quests
     intensity = quests.currentStaircase.intensities[-1]
     condition = quests.currentStaircase.condition
-    samples_per_second = 60
+    samples_per_second = 120
 
     line_x = condition['line_x']
     line_y = condition['line_y']

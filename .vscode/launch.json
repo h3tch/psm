@@ -29,7 +29,7 @@
             "name": "Python: App",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/app.py",
+            "program": "${workspaceFolder}/gtk_demo.py",
             "console": "integratedTerminal"
         },
         {

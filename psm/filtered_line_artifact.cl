@@ -89,7 +89,7 @@ float filter_line(const float line_x,
                    const float filter_radius)
 {
     const float maxR = filter_radius + artifact_size;
-    const float line_nx = sin(line_angle);
+    const float line_nx = -sin(line_angle);
     const float line_ny = cos(line_angle);
     const float line_d = line_x * line_nx + line_y * line_ny;
     const float filter_d = filter_x * line_nx + filter_y * line_ny;
@@ -100,21 +100,16 @@ float filter_line(const float line_x,
 
     const float k = -line_nx / line_ny;
     const float d = line_y - k * line_x;
-    const float pixel_center_shift = artifact_size * 0.5;
+    const float pixel_center_shift = filter_x + artifact_size * 0.5;
 
     float c0 = rasterize(artifact_size, filter_x - filter_radius) - filter_x;
     const float filter_radius2 = filter_radius * filter_radius;
-    // const float r0 = filter_y - filter_radius;
 
-    // if (filter_radius <= 0.0) {
-    //     const float c1 = c0 + artifact_size;
-    //     const float r1 =
-    //         rasterize_line_y(artifact_size, k, d, c0 + pixel_center_shift);
-    //     return c0 <= filter_x && filter_x < c1 && r0 <= filter_y
-    //                    && filter_y < r1
-    //                ? 1.0
-    //                : 0.0;
-    // }
+    if (filter_radius <= 0.0f) {
+        const float r1 =
+            rasterize_line_y(artifact_size, k, d, c0 + pixel_center_shift) - filter_y;
+        return r1 < 0.0f ? 0.0f : 1.0f;
+    }
 
     float area = 0.0f;
     while (c0 <= filter_radius) {
@@ -124,12 +119,11 @@ float filter_line(const float line_x,
         float a = estimate_circle_segment_area(c0, c1, fabs(r1), filter_radius, filter_radius2);
         if (r1 > 0)
             a = estimate_circle_interval_area(c0, c1, filter_radius, filter_radius2) - a;
-        // if (a > 0.0)
-            area += a;
+        area += a;
         c0 = c1;
     }
 
-    const float circle_area = (19.0f / 6.0f) * filter_radius * filter_radius;
+    const float circle_area = (19.0f / 6.0f) * filter_radius2;
     return min(max(area / circle_area, 0.0f), 1.0f);
 }
 
@@ -160,5 +154,5 @@ __kernel void filtered_line_artifact(const unsigned int width,
                                     (float)filter_y,
                                     (float)filter_radius);
 
-    write_imagef(result, (int2)(col, row), (float4)(color, 0.0f, 0.0f, 1.0f));
+    write_imagef(result, (int2)(col, row), (float4)(color, color, color, 1.0f));
 }
