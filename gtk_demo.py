@@ -78,16 +78,24 @@ class Gui(Gtk.Window):
         self.show_all()
 
         self.lock = threading.Lock()
+        self.render_settings(artifact_size=8,
+                             line_angle=np.deg2rad(-0.0),
+                             filter_radius=100.0,
+                             filter_noise=0,
+                             velocity=10.0)
+
         self.thread = Render(target=self.render)
         self.thread.daemon = True
         self.thread.start()
 
-        self.render_settings(1, 0.0, 0.0, 0, 0.0)
-
     def render_settings(self, artifact_size, line_angle, filter_radius,
                         filter_noise, velocity):
-        corners = [(0, 0), (image_size - 1, 0), (0, image_size - 1),
-                   (image_size - 1, image_size - 1)]
+        min_size = -filter_radius
+        max_size = image_size + filter_radius - 1
+        corners = [(min_size, min_size),
+                   (max_size, min_size),
+                   (min_size, max_size),
+                   (max_size, max_size)]
         with self.lock:
             self.artifact_size = max(1, artifact_size)
             self.line_x = image_size / 2.0
@@ -102,12 +110,14 @@ class Gui(Gtk.Window):
             self.filter_radius = max(0.0, filter_radius)
             self.filter_noise = min(max(filter_noise, 0), 255)
             self.image_angle = 0.0
-            corner_distances = [corner[0] * self.line_nx + corner[1] * self.line_ny for corner in corners]
+            corner_distances = [
+                corner[0] * self.line_nx + corner[1] * self.line_ny
+                for corner in corners
+            ]
             self.min_image_d = min(corner_distances)
             self.max_image_d = max(corner_distances)
 
     def render(self, duration, elapsed):
-
         with self.lock:
             draw_line(self.current_line_x,
                       self.current_line_y,
@@ -115,7 +125,7 @@ class Gui(Gtk.Window):
                       self.filter_radius,
                       self.filter_noise,
                       self.image_angle,
-                      result=window.left_image_data)
+                      result=self.left_image_data)
             draw_artifact_line(self.current_line_x,
                                self.current_line_y,
                                self.line_angle,
@@ -123,16 +133,16 @@ class Gui(Gtk.Window):
                                self.filter_radius,
                                self.filter_noise,
                                self.image_angle,
-                               result=window.right_image_data)
+                               result=self.right_image_data)
 
             self.current_line_x += self.line_vx * elapsed
             self.current_line_y += self.line_vy * elapsed
             current_line_d = self.current_line_x * self.line_nx + self.current_line_y * self.line_ny
             if current_line_d < self.min_image_d or self.max_image_d < current_line_d:
-                current_line_d = min(max(line_d, self.min_image_d),
+                current_line_d = min(max(current_line_d, self.min_image_d),
                                      self.max_image_d)
-                self.line_x = self.line_x + self.line_nx * current_line_d
-                self.line_y = self.line_y + self.line_ny * current_line_d
+                self.current_line_x = self.line_nx * current_line_d
+                self.current_line_y = self.line_ny * current_line_d
                 self.line_vx = -self.line_vx
                 self.line_vy = -self.line_vy
 
