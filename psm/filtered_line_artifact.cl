@@ -5,7 +5,7 @@
 
 float _circle_segment_area(const float x, const float y, const float r, const float r2)
 {
-    return 0.5 * (sqrt(1.0 - x * x / r2) * x * r + r2 * asin(x / r) - 2.0 * y * x);
+    return 0.5f * (sqrt(1.0f - x * x / r2) * x * r + r2 * asin(x / r) - 2.0f * y * x);
 }
 
 // area of intersection of an infinitely tall box with left edge at x0,

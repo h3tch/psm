@@ -10,7 +10,7 @@ import time
 
 import psm.filter
 
-image_size = 1000
+image_size = 500
 draw_line = psm.filter.Line(image_size, image_size)
 draw_artifact_line = psm.filter.ArtifactLine(image_size, image_size)
 
