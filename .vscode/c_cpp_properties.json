@@ -3,7 +3,6 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/include/**",
                 "/usr/include/**",
                 "/usr/include/eigen3/**"
             ],

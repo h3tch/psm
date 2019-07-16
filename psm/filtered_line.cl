@@ -34,6 +34,8 @@ float estimate_circle_segment_area(const float radius,
 float estimate_circle_line_overlap(const float radius,
                                    const float distance)
 {
+    if (radius <= 0.0f)
+        return distance >= radius ? 1.0f : 0.0f;
     const float filter_area = estimate_circle_area(radius);
     const float segment_area =
         estimate_circle_segment_area(radius, distance, filter_area);
