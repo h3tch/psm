@@ -1,6 +1,7 @@
 #include "image_rotation.cl" // rotate_point_arround_image_center
 #include "rasterize.cl"      // rasterize, rasterize_line_y
 #include "circle.cl"
+#include "random.cl"
 
 float filter_line(const float line_x,
                   const float line_y,
@@ -61,6 +62,7 @@ __kernel void filtered_line_artifact(const unsigned int width,
                                      const float line_y,
                                      const float line_angle,
                                      const float filter_radius,
+                                     const float filter_noise,
                                      const float image_angle,
                                      __write_only image2d_t result)
 {
@@ -73,13 +75,18 @@ __kernel void filtered_line_artifact(const unsigned int width,
     rotate_point_arround_image_center(
         width, height, image_angle, &filter_x, &filter_y);
 
-    const float color = filter_line((float)line_x,
-                                    (float)line_y,
-                                    (float)line_angle,
-                                    (float)artifact_size,
-                                    (float)filter_x,
-                                    (float)filter_y,
-                                    (float)filter_radius);
+    float color = filter_line(line_x,
+                              line_y,
+                              line_angle,
+                              artifact_size,
+                              filter_x,
+                              filter_y,
+                              filter_radius);
+
+    if (0.0f < color && color < 1.0f)
+        color += filter_noise * randf(filter_x, filter_y);
+
+    color = min(max(color, 0.0f), 1.0f);
 
     write_imagef(result, (int2)(col, row), (float4)(color, color, color, 1.0f));
 }

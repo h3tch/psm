@@ -79,10 +79,10 @@ class Gui(Gtk.Window):
 
         self.lock = threading.Lock()
         self.render_settings(artifact_size=8,
-                             line_angle=np.deg2rad(44.5),
+                             line_angle=np.deg2rad(45),
                              filter_radius=100.0,
-                             filter_noise=0,
-                             velocity=10.0)
+                             filter_noise=20,
+                             velocity=0.0)
 
         self.thread = Render(target=self.render)
         self.thread.daemon = True
@@ -108,8 +108,8 @@ class Gui(Gtk.Window):
             self.line_vx = self.line_nx * velocity
             self.line_vy = self.line_ny * velocity
             self.filter_radius = max(0.0, filter_radius)
-            self.filter_noise = min(max(filter_noise, 0), 255)
-            self.image_angle = 0.0
+            self.filter_noise = min(max(filter_noise, 0), 255) / 255.0
+            self.image_angle = np.random.rand() * np.pi * 2
             corner_distances = [
                 corner[0] * self.line_nx + corner[1] * self.line_ny
                 for corner in corners

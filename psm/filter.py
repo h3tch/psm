@@ -35,7 +35,7 @@ class Line(Base):
                  line_y: float,
                  line_angle: float,
                  filter_radius: float,
-                 filter_noise: int,
+                 filter_noise: float,
                  image_angle: float,
                  result: np.array = None) -> np.array:
         shape = self._result_image.shape
@@ -45,6 +45,7 @@ class Line(Base):
                                     np.float32(line_x), np.float32(line_y),
                                     np.float32(line_angle),
                                     np.float32(filter_radius),
+                                    np.float32(filter_noise),
                                     np.float32(image_angle),
                                     self._result_image)
 
@@ -71,7 +72,7 @@ class ArtifactLine(Base):
                  line_angle: float,
                  artifact_size: int,
                  filter_radius: float,
-                 filter_noise: int ,
+                 filter_noise: float ,
                  image_angle: float,
                  result: np.array = None) -> np.array:
         shape = self._result_image.shape
@@ -84,6 +85,7 @@ class ArtifactLine(Base):
                                              np.float32(line_y),
                                              np.float32(line_angle),
                                              np.float32(filter_radius),
+                                             np.float32(filter_noise),
                                              np.float32(image_angle),
                                              self._result_image)
 
