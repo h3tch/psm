@@ -79,7 +79,7 @@ class Gui(Gtk.Window):
 
         self.lock = threading.Lock()
         self.render_settings(artifact_size=8,
-                             line_angle=np.deg2rad(-0.0),
+                             line_angle=np.deg2rad(44.5),
                              filter_radius=100.0,
                              filter_noise=0,
                              velocity=10.0)
