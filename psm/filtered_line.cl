@@ -1,5 +1,5 @@
-#include "image_rotation.cl" // rotate_point_arround_image_center, rotate_point
 #include "circle.cl"
+#include "image_rotation.cl" // rotate_point_arround_image_center, rotate_point
 #include "random.cl"
 
 __kernel void filtered_line(const unsigned int width,
@@ -25,7 +25,7 @@ __kernel void filtered_line(const unsigned int width,
         filter_x, filter_y, filter_radius, line_x, line_y, line_angle);
 
     if (0.0f < color && color < 1.0f)
-        color += filter_noise * randf(filter_x, filter_y);
+        color += filter_noise * poisson_noise(filter_x, filter_y, 100.0f * color);
 
     color = min(max(color, 0.0f), 1.0f);
 

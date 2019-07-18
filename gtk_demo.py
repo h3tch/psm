@@ -81,8 +81,8 @@ class Gui(Gtk.Window):
         self.render_settings(artifact_size=8,
                              line_angle=np.deg2rad(45),
                              filter_radius=100.0,
-                             filter_noise=20,
-                             velocity=0.0)
+                             filter_noise=10,
+                             velocity=100.0)
 
         self.thread = Render(target=self.render)
         self.thread.daemon = True

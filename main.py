@@ -4,6 +4,33 @@ import numpy as np
 from PIL import Image
 import psm.filter
 
+def poisson(expected, observed):
+    return np.e**(-expected - 1) * (np.e*expected/observed)**observed
+
+def random_poisson(expected, start, stop):
+    n = 10
+    p = np.random.rand()
+
+    cdf = np.empty((n,))
+    cdf[0] = poisson(expected, start)
+
+    gen = enumerate(np.linspace(start, stop, n))
+    next(gen)
+    for i, k in gen:
+        cdf[i] = cdf[i-1] + poisson(expected, k) - cdf[0]
+
+    cdf[0] /= cdf[-1]
+    gen = enumerate(cdf)
+    next(gen)
+    for i, q in gen:
+        cdf[i] /= cdf[-1]
+        if cdf[i] >= p:
+            t = (cdf[i-1] - p) / (cdf[i-1] - cdf[i])
+            rnd = ((i - 1) * (1 - t) + i * t) / n
+            return rnd
+
+random_poisson(32, 22, 42)
+
 artifact_size = 2
 line_angles = [
     np.deg2rad(-5),
