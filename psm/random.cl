@@ -52,6 +52,6 @@ float random_poisson(const float seedx,
 float poisson_noise(const float seedx, const float seedy, const float samples)
 {
     const float rnd =
-        random_poisson(seedx, seedy, samples, 0.0f, max(10.0f, 2 * samples));
+        random_poisson(seedx, seedy, samples, 0.0f, 2 * samples);
     return 2.0f * rnd - 1.0f;
 }
