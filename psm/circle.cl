@@ -34,7 +34,7 @@ float estimate_circle_segment_interval_area(float x,
     const float max_x_segment_area =
         estimate_circle_segment_area(radius - max_x, 2.0f * y);
     const float rect_area = (max_x - x) * y;
-    return (x_segment_area - max_x_segment_area) / 2.0f - rect_area;
+    return max((x_segment_area - max_x_segment_area) / 2.0f - rect_area, 0.0f);
 }
 
 float estimate_circle_interval_area(const float x0,
@@ -54,7 +54,7 @@ float estimate_circle_interval_area(const float x0,
 
     if (x0 > 0.0f)
         left_area = circle_area - left_area;
-    if (x1 < 0.0f)
+    if (x1 <= 0.0f)
         right_area = circle_area - right_area;
 
     return circle_area - left_area - right_area;

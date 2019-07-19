@@ -60,8 +60,8 @@ class Gui:
         self._draw_artifact_line(line_x,
                                  line_y,
                                  line_angle,
-                                 artifact_size,
-                                 filter_radius,
+                                 8,
+                                 80.4,
                                  filter_noise,
                                  image_angle,
                                  result=self.image_data)
