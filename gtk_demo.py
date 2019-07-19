@@ -26,7 +26,7 @@ conditions = [{
     'startValSd': 0.2,
     'artifact_size': 8,
     'line_angle': np.deg2rad(1),
-    'velocity': 100.0,
+    'velocity': 0.0,
     'filter_noise': 10,
     'filter_radius': 100.0
 }]
@@ -247,7 +247,7 @@ class Gui(Gtk.Window):
 
 
 quests = psychopy.data.MultiStairHandler(conditions=conditions,
-                                         nTrials=5,
+                                         nTrials=20,
                                          stairType='QUEST')
 quests.next()
 

@@ -12,11 +12,12 @@ float estimate_circle_area(const float radius)
 float estimate_circle_segment_area(const float segment_height,
                                    const float chord_length)
 {
-    if (chord_length < 1e-8)
+    const float inv_chord_length = 1.0f / (2.0f * chord_length);
+    if (!isfinite(inv_chord_length))
         return 0.0f;
     return segment_height
            * ((2.0f / 3.0f) * chord_length
-              + segment_height * segment_height / (2.0f * chord_length));
+              + segment_height * segment_height * inv_chord_length);
 }
 
 float estimate_circle_segment_interval_area(float x,
@@ -56,7 +57,7 @@ float estimate_circle_interval_area(const float x0,
     if (x1 < 0.0f)
         right_area = circle_area - right_area;
 
-    return max(circle_area - left_area - right_area, 0.0f);
+    return circle_area - left_area - right_area;
 }
 
 float estimate_circle_infinite_bar_area(
@@ -77,10 +78,10 @@ float estimate_circle_infinite_bar_area(
     float right_area = estimate_circle_segment_interval_area(
         fabs(x1), y, max_x, radius, radius2);
 
-    if (x1 < 0.0f)
+    if (x1 <= 0.0f)
         right_area = segment_area - right_area;
 
-    return max(segment_area - left_area - right_area, 0.0f);
+    return segment_area - left_area - right_area;
 }
 
 float estimate_circle_segment_percentage(const float radius,

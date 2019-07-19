@@ -26,6 +26,7 @@ class Gui:
         self.line_angle = self.builder.get_object("line_angle")
         self.line_x = self.builder.get_object("line_x")
         self.line_y = self.builder.get_object("line_y")
+        self.image_angle = self.builder.get_object("image_angle")
 
         self.window = self.builder.get_object("window")
         self.window.show_all()
@@ -50,18 +51,19 @@ class Gui:
         image_height = self.image_data.shape[0]
         artifact_size = self.artifact_size.get_value_as_int()
         filter_radius = self.filter_radius.get_value()
-        filter_noise = self.filter_noise.get_value()
+        filter_noise = self.filter_noise.get_value() / 255.0
         line_angle = np.deg2rad(self.line_angle.get_value())
-        line_x = self.line_x.get_value()
-        line_y = self.line_y.get_value()
+        line_x = image_width / 2 + self.line_x.get_value()
+        line_y = image_height / 2 + self.line_y.get_value()
+        image_angle = np.deg2rad(self.image_angle.get_value())
 
-        self._draw_artifact_line(image_width / 2 + line_x,
-                                 image_height / 2 + line_y,
+        self._draw_artifact_line(line_x,
+                                 line_y,
                                  line_angle,
                                  artifact_size,
                                  filter_radius,
-                                 filter_noise / 255.0,
-                                 0.0,
+                                 filter_noise,
+                                 image_angle,
                                  result=self.image_data)
 
         self.image_data[:, :, 3] = 255
