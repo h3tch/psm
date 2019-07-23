@@ -21,14 +21,59 @@ base_condition = {
 }
 
 conditions = [{
-    'label': 'angle1',
-    'startVal': 0.9,
+#     'label': 'angle1 noise0 speed0',
+#     'startVal': 0.7,
+#     'startValSd': 0.2,
+#     'artifact_size': 8,
+#     'line_angle': np.deg2rad(1),
+#     'velocity': 0.0,
+#     'filter_noise': 0,
+#     'filter_radius': 100.0
+# }, {
+#     'label': 'angle1 noise10 speed0',
+#     'startVal': 0.7,
+#     'startValSd': 0.2,
+#     'artifact_size': 8,
+#     'line_angle': np.deg2rad(1),
+#     'velocity': 0.0,
+#     'filter_noise': 10,
+#     'filter_radius': 100.0
+# }, {
+    'label': 'angle0 noise0 speed300',
+    'startVal': 0.7,
     'startValSd': 0.2,
     'artifact_size': 8,
-    'line_angle': np.deg2rad(1),
-    'velocity': 0.0,
+    'line_angle': np.deg2rad(0),
+    'velocity': 300.0,
+    'filter_noise': 0,
+    'filter_radius': 200.0
+}, {
+    'label': 'angle0 noise10 speed300',
+    'startVal': 0.7,
+    'startValSd': 0.2,
+    'artifact_size': 8,
+    'line_angle': np.deg2rad(0),
+    'velocity': 300.0,
     'filter_noise': 10,
-    'filter_radius': 100.0
+    'filter_radius': 200.0
+}, {
+    'label': 'angle0 noise0 speed200',
+    'startVal': 0.7,
+    'startValSd': 0.2,
+    'artifact_size': 8,
+    'line_angle': np.deg2rad(0),
+    'velocity': 200.0,
+    'filter_noise': 0,
+    'filter_radius': 200.0
+}, {
+    'label': 'angle0 noise10 speed200',
+    'startVal': 0.7,
+    'startValSd': 0.2,
+    'artifact_size': 8,
+    'line_angle': np.deg2rad(0),
+    'velocity': 200.0,
+    'filter_noise': 10,
+    'filter_radius': 200.0
 }]
 
 conditions = [{**base_condition, **c} for c in conditions]
@@ -47,7 +92,7 @@ class Render(threading.Thread):
 
     def run(self):
         def redraw(elapsed_time):
-            self._window.set_title(f'{int(1/elapsed_time)} fps')
+            self._window.set_title(f'User Study f{int(1/elapsed_time)} fps')
             self._window.left_image.queue_draw()
             self._window.right_image.queue_draw()
             self._drawing = False
@@ -60,15 +105,20 @@ class Render(threading.Thread):
             current_time = time.time()
             elapsed_time = current_time - previous_time
             if not self._drawing:
-                self._drawing = True
-                self._draw_function(current_time - start_time, elapsed_time)
-                GLib.idle_add(redraw, elapsed_time)
+                if self._draw_function(current_time - start_time,
+                                       elapsed_time):
+                    self._drawing = True
+                    GLib.idle_add(redraw, elapsed_time)
             time.sleep(0.001)
 
 
 class Gui(Gtk.Window):
-    def __init__(self, quests, image_size=800):
+    def __init__(self, quests, user, image_size=800):
         super().__init__()
+
+        self._quests = quests
+        self._user = user
+        self._start_time = time.time()
 
         self._data_folder = os.path.join(os.path.dirname(__file__), 'data')
         os.makedirs(self._data_folder, exist_ok=True)
@@ -77,11 +127,12 @@ class Gui(Gtk.Window):
         os.makedirs(self._data_folder, exist_ok=True)
         self._backup_file = os.path.join(self._data_folder, 'backup')
 
+        with open(os.path.join(self._data_folder, 'info.txt'), 'w') as file:
+            file.write(f'user: {self._user}\n')
+
         self._draw_line = psm.filter.Line(image_size, image_size)
         self._draw_artifact_line = psm.filter.ArtifactLine(
             image_size, image_size)
-
-        self._quests = quests
 
         self.left_image_data = np.zeros((image_size, image_size, 4),
                                         dtype=np.uint8)
@@ -98,11 +149,23 @@ class Gui(Gtk.Window):
         different_button = Gtk.Button(label="Different")
         cannot_decide_button = Gtk.Button(label="Cannot Decide")
 
+        left_event_box = Gtk.EventBox()
+        right_event_box = Gtk.EventBox()
+        left_event_box.add(self.left_image)
+        right_event_box.add(self.right_image)
+        left_event_box.add_events(Gdk.EventMask.BUTTON_RELEASE_MASK)
+        right_event_box.add_events(Gdk.EventMask.BUTTON_RELEASE_MASK)
+        left_event_box.connect('button-press-event', self.on_different,
+                               self.left_image)
+        right_event_box.connect('button-press-event', self.on_different,
+                                self.right_image)
+
         grid = Gtk.Grid()
-        grid.attach(self.left_image, 0, 0, 10, 10)
-        grid.attach(self.right_image, 10, 0, 10, 10)
-        grid.attach(different_button, 0, 10, 10, 1)
-        grid.attach(cannot_decide_button, 10, 10, 10, 1)
+        grid.set_column_spacing(12)
+        grid.set_row_spacing(12)
+        grid.attach(left_event_box, 0, 0, 10, 10)
+        grid.attach(right_event_box, 10, 0, 10, 10)
+        grid.attach(cannot_decide_button, 7, 10, 6, 1)
 
         different_button.connect("clicked", self.on_different)
         cannot_decide_button.connect("clicked", self.on_cannot_decide)
@@ -162,26 +225,35 @@ class Gui(Gtk.Window):
             self.filter_radius = max(0.0, filter_radius)
             self.filter_noise = np.clip(filter_noise, 0, 255) / 255.0
             self.image_angle = image_angle
+            self.flip_images = np.random.rand() >= 0.5
             self.min_image_d = min(corner_distances)
             self.max_image_d = max(corner_distances)
+            self.frame = 0
 
     def render(self, duration, elapsed):
         with self.lock:
+            # if there is no animation we do not need to render again
+            if self.frame > 0 and self.line_vx == 0 and self.line_vy == 0:
+                return False
+
             self._draw_line(self.current_line_x,
                             self.current_line_y,
                             self.line_angle,
                             self.filter_radius,
                             self.filter_noise,
                             self.image_angle,
-                            result=self.left_image_data)
-            self._draw_artifact_line(self.current_line_x,
-                                     self.current_line_y,
-                                     self.line_angle,
-                                     self.artifact_size,
-                                     self.filter_radius,
-                                     self.filter_noise,
-                                     self.image_angle,
-                                     result=self.right_image_data)
+                            result=self.right_image_data
+                            if self.flip_images else self.left_image_data)
+            self._draw_artifact_line(
+                self.current_line_x,
+                self.current_line_y,
+                self.line_angle,
+                self.artifact_size,
+                self.filter_radius,
+                self.filter_noise,
+                self.image_angle,
+                result=self.left_image_data
+                if self.flip_images else self.right_image_data)
 
             self.current_line_x += self.line_vx * elapsed
             self.current_line_y += self.line_vy * elapsed
@@ -193,6 +265,9 @@ class Gui(Gtk.Window):
                 self.current_line_y = self.line_ny * current_line_d
                 self.line_vx = -self.line_vx
                 self.line_vy = -self.line_vy
+
+            self.frame += 1
+            return True
 
     def quit(self, *args):
         self.thread.stop()
@@ -218,14 +293,41 @@ class Gui(Gtk.Window):
                         f'{label},{artifact_size},{line_angle},{velocity},{filter_noise},{filter_radius*intensity},{response}\n'
                     )
 
-    def on_different(self, widget):
-        increase_radius_response = 0
-        self._quests.addResponse(increase_radius_response)
+    def add_response_info_to_current_quest(self,
+                                           selected_left,
+                                           selected_right,
+                                           x=0,
+                                           y=0):
+        if selected_left:
+            correct_response = (self.flip_images, x, y)
+        elif selected_right:
+            correct_response = (not self.flip_images, x, y)
+        else:
+            correct_response = None
+        current_quest = self._quests.currentStaircase
+        if current_quest.extraInfo is None:
+            current_quest.extraInfo = []
+        current_quest.extraInfo.append(correct_response)
+        return correct_response
+
+    def on_different(self, widget, event, *args):
+        selected_left = self.left_image in args
+        selected_right = self.right_image in args
+        correct = self.add_response_info_to_current_quest(
+            selected_left, selected_right, event.x, event.y)
+
+        increase_radius = 0
+        decrease_radius = 1
+        self._quests.addResponse(
+            increase_radius if correct else decrease_radius)
         self.setup_next_quest()
 
     def on_cannot_decide(self, widget):
-        decrease_radius_response = 1
-        self._quests.addResponse(decrease_radius_response)
+        self.add_response_info_to_current_quest(selected_left=False,
+                                                selected_right=False)
+
+        decrease_radius = 1
+        self._quests.addResponse(decrease_radius)
         self.setup_next_quest()
 
     def setup_next_quest(self):
@@ -235,6 +337,17 @@ class Gui(Gtk.Window):
         except StopIteration:
             self.close()
             return
+
+        done_trials = self._quests.totalTrials
+        number_of_trials = self._quests.nTrials * len(self._quests.staircases)
+        remaining_trials = number_of_trials - done_trials
+
+        running_time = time.time() - self._start_time
+        average_time = running_time / done_trials if done_trials > 0 else 5.0
+        remaining_time = int(np.ceil(average_time * remaining_trials / 60.0))
+
+        percent = (100.0 * done_trials) / number_of_trials
+        # self.set_title(f'User Study {percent}% (~{remaining_time} min left)')
 
         artifact_size = condition['artifact_size']
         line_angle = condition['line_angle']
@@ -246,11 +359,13 @@ class Gui(Gtk.Window):
                              filter_noise, velocity)
 
 
+user = input('User:')
+
 quests = psychopy.data.MultiStairHandler(conditions=conditions,
                                          nTrials=20,
                                          stairType='QUEST')
 quests.next()
 
-Gui(quests=quests)
+Gui(quests=quests, user=user)
 
 Gtk.main()

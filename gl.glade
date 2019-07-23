@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.22.1 -->
+<interface>
+  <requires lib="gtk+" version="3.20"/>
+  <object class="GtkWindow" id="window">
+    <property name="can_focus">False</property>
+    <signal name="destroy" handler="onDestroy" swapped="no"/>
+    <child>
+      <placeholder/>
+    </child>
+    <child>
+      <object class="GtkGLArea" id="canvas">
+        <property name="visible">True</property>
+        <property name="app_paintable">True</property>
+        <property name="can_focus">False</property>
+        <signal name="create-context" handler="onCreateContext" swapped="no"/>
+        <signal name="realize" handler="onRealize" swapped="no"/>
+        <signal name="render" handler="onRender" swapped="no"/>
+        <signal name="resize" handler="onResize" swapped="no"/>
+        <signal name="unrealize" handler="onUnrealize" swapped="no"/>
+      </object>
+    </child>
+  </object>
+</interface>

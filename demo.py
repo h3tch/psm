@@ -16,7 +16,7 @@ class Gui:
         }
 
         self.builder = Gtk.Builder()
-        self.builder.add_from_file("demo.glade")
+        self.builder.add_from_file(glade_file)
         self.builder.connect_signals(handlers)
 
         self.canvas = self.builder.get_object("canvas")
@@ -60,8 +60,8 @@ class Gui:
         self._draw_artifact_line(line_x,
                                  line_y,
                                  line_angle,
-                                 8,
-                                 80.4,
+                                 artifact_size,
+                                 filter_radius,
                                  filter_noise,
                                  image_angle,
                                  result=self.image_data)

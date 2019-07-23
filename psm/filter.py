@@ -2,16 +2,30 @@ import os
 import random
 import numpy as np
 import pyopencl as cl
+from pyopencl.tools import get_gl_sharing_context_properties
 
-platforms = cl.get_platforms()
-device = platforms[-1].get_devices()
-context = cl.Context(device)
-command_queue = cl.CommandQueue(context)
+
+context = None
+command_queue = None
 mem = cl.mem_flags
+
+def init_opencl():
+    global context, command_queue
+    platform = cl.get_platforms()[-1]
+    devices = platform.get_devices()
+    context = cl.Context(devices=devices,
+                        properties=[(cl.context_properties.PLATFORM, platform)] +
+                        get_gl_sharing_context_properties())
+    command_queue = cl.CommandQueue(context)
 
 
 class Base:
+    context = None
+    command_queue = None
+
     def __init__(self, image_width, image_height, opencl_file):
+        init_opencl()
+
         with open(opencl_file, 'r') as f:
             source = f.read()
 
@@ -50,7 +64,7 @@ class Line(Base):
                                     self._result_image)
 
         if result is None:
-            result = np.zeros(shape + (4,), np.uint8)
+            result = np.zeros(shape + (4, ), np.uint8)
         cl.enqueue_copy(command_queue,
                         result,
                         self._result_image,
@@ -72,7 +86,7 @@ class ArtifactLine(Base):
                  line_angle: float,
                  artifact_size: int,
                  filter_radius: float,
-                 filter_noise: float ,
+                 filter_noise: float,
                  image_angle: float,
                  result: np.array = None) -> np.array:
         shape = self._result_image.shape
@@ -90,7 +104,7 @@ class ArtifactLine(Base):
                                              self._result_image)
 
         if result is None:
-            result = np.zeros(shape + (4,), np.uint8)
+            result = np.zeros(shape + (4, ), np.uint8)
         cl.enqueue_copy(command_queue,
                         result,
                         self._result_image,
