@@ -9,22 +9,26 @@ command_queue = None
 mem = cl.mem_flags
 
 
-def init_opencl():
+def init_opencl(sharing=True):
     global context, command_queue
     if context is not None:
         return
     platform = cl.get_platforms()[-1]
     devices = platform.get_devices()
-    context = cl.Context(
-        devices=devices,
-        properties=[(cl.context_properties.PLATFORM, platform)] +
-        get_gl_sharing_context_properties())
+    if sharing:
+        context = cl.Context(
+            devices=devices,
+            properties=[(cl.context_properties.PLATFORM, platform)] +
+            get_gl_sharing_context_properties())
+    else:
+        context = cl.Context(devices=devices)
     command_queue = cl.CommandQueue(context)
 
 
 class Base:
     def __init__(self, image_width, image_height, opencl_file, gl_image=None):
-        init_opencl()
+        enable_gl_sharing = gl_image is not None
+        init_opencl(enable_gl_sharing)
 
         with open(opencl_file, 'r') as f:
             source = f.read()
@@ -82,7 +86,7 @@ class Line(Base):
                             result,
                             self._result_image,
                             origin=(0, 0),
-                            region=result.shape)
+                            region=shape)
             return result
 
 
@@ -126,5 +130,5 @@ class ArtifactLine(Base):
                             result,
                             self._result_image,
                             origin=(0, 0),
-                            region=result.shape)
+                            region=shape)
             return result
