@@ -64,6 +64,7 @@ class Line(Base):
                  line_angle: float,
                  filter_radius: float,
                  filter_noise: float,
+                 filter_samples: float,
                  image_angle: float,
                  result: np.array = None) -> np.array:
         shape = self._result_image.shape
@@ -76,6 +77,7 @@ class Line(Base):
                                     np.float32(line_angle),
                                     np.float32(filter_radius),
                                     np.float32(filter_noise),
+                                    np.float32(filter_samples),
                                     np.float32(image_angle),
                                     self._result_image)
         if hasattr(self._result_image, 'gl_object'):
@@ -105,6 +107,7 @@ class ArtifactLine(Base):
                  artifact_size: int,
                  filter_radius: float,
                  filter_noise: float,
+                 filter_samples: float,
                  image_angle: float,
                  result: np.array = None) -> np.array:
         shape = self._result_image.shape
@@ -120,6 +123,7 @@ class ArtifactLine(Base):
                                              np.float32(line_angle),
                                              np.float32(filter_radius),
                                              np.float32(filter_noise),
+                                             np.float32(filter_samples),
                                              np.float32(image_angle),
                                              self._result_image)
         if hasattr(self._result_image, 'gl_object'):

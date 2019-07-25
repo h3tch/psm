@@ -188,7 +188,7 @@ class StimuliGenerator:
         self._draw_artifact_line = psm.filter.ArtifactLine(
             image_size, image_size, self.artifact_image.obj)
 
-        self.settings(1, 0, 0, 0, 0)
+        self.settings(1, 0, 0, 0, 0, 0)
         self._last_time = time.time()
 
     def __del__(self):
@@ -201,7 +201,7 @@ class StimuliGenerator:
         return self.flip_images if selected_left else not self.flip_images
 
     def settings(self, artifact_size, line_angle, filter_radius, filter_noise,
-                 velocity):
+                 filter_samples, velocity):
         image_angle = np.random.rand() * np.pi * 2
         image_size = self._image_size
         half_image_size = image_size / 2.0
@@ -237,6 +237,7 @@ class StimuliGenerator:
         self.line_y = half_image_size + rand_y
         self.current_line_x = self.line_x
         self.current_line_y = self.line_y
+        self.line_samples = 2
         self.line_angle = line_angle
         self.line_nx = line_nx
         self.line_ny = line_ny
@@ -244,6 +245,7 @@ class StimuliGenerator:
         self.line_vy = self.line_ny * velocity
         self.filter_radius = max(0.0, filter_radius)
         self.filter_noise = np.clip(filter_noise, 0, 255) / 255.0
+        self.filter_samples = max(0.0, filter_samples)
         self.image_angle = image_angle
         self.flip_images = np.random.rand() >= 0.5
         self.min_image_d = min(corner_distances)
@@ -261,11 +263,11 @@ class StimuliGenerator:
 
         self._draw_line(self.current_line_x, self.current_line_y,
                         self.line_angle, self.filter_radius, self.filter_noise,
-                        self.image_angle)
+                        self.filter_samples, self.image_angle)
         self._draw_artifact_line(self.current_line_x, self.current_line_y,
                                  self.line_angle, self.artifact_size,
                                  self.filter_radius, self.filter_noise,
-                                 self.image_angle)
+                                 self.filter_samples, self.image_angle)
 
         self.current_line_x += self.line_vx * elapsed_time
         self.current_line_y += self.line_vy * elapsed_time

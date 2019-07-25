@@ -63,6 +63,7 @@ __kernel void filtered_line_artifact(const unsigned int width,
                                      const float line_angle,
                                      const float filter_radius,
                                      const float filter_noise,
+                                     const float filter_samples,
                                      const float image_angle,
                                      __write_only image2d_t result)
 {
@@ -84,7 +85,7 @@ __kernel void filtered_line_artifact(const unsigned int width,
                               filter_radius);
 
     if (0.0f < color && color < 1.0f)
-        color += filter_noise * poisson_noise(filter_x, filter_y, 100.0f * color);
+        color += filter_noise * poisson_noise(filter_x, filter_y, filter_samples * color);
 
     color = min(max(color, 0.0f), 1.0f);
 

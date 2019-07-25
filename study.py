@@ -26,7 +26,8 @@ conditions = [
         'line_angle': np.deg2rad(1),
         'velocity': 0.0,
         'filter_noise': 0,
-        'filter_radius': 100.0
+        'filter_radius': 100.0,
+        'filter_samples': 100.0
     },
     {
         'label': 'angle1 noise10 speed0',
@@ -36,7 +37,8 @@ conditions = [
         'line_angle': np.deg2rad(1),
         'velocity': 0.0,
         'filter_noise': 10,
-        'filter_radius': 100.0
+        'filter_radius': 100.0,
+        'filter_samples': 100.0
     },
     # {
         #     'label': 'angle0 noise0 speed300',
@@ -142,10 +144,11 @@ class Study:
         line_angle = condition['line_angle']
         filter_radius = condition['filter_radius'] * intensity
         filter_noise = condition['filter_noise']
+        filter_samples = condition['filter_samples']
         velocity = condition['velocity']
 
         self.stimuli.settings(artifact_size, line_angle, filter_radius,
-                              filter_noise, velocity)
+                              filter_noise, filter_samples, velocity)
 
     def on_create_context(self, gl_area):
         ctx = gl_area.get_window().create_gl_context()

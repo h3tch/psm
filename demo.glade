@@ -4,6 +4,7 @@
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkAdjustment" id="angle_adjustment">
     <property name="upper">45</property>
+    <property name="value">1</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
@@ -19,10 +20,24 @@
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="filter_samples_adjustment">
+    <property name="lower">1</property>
+    <property name="upper">500</property>
+    <property name="value">100</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
   <object class="GtkAdjustment" id="image_angle_adjustment">
     <property name="upper">360</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="image_samples_adjustment">
+    <property name="lower">1</property>
+    <property name="upper">2</property>
+    <property name="value">1</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">1</property>
   </object>
   <object class="GtkAdjustment" id="line_x_adjustment">
     <property name="lower">-100</property>
@@ -43,6 +58,7 @@
   </object>
   <object class="GtkWindow" id="window">
     <property name="width_request">1100</property>
+    <property name="height_request">1000</property>
     <property name="can_focus">False</property>
     <property name="resizable">False</property>
     <signal name="destroy" handler="onDestroy" swapped="no"/>
@@ -350,6 +366,90 @@
                 </child>
               </object>
             </child>
+            <child>
+              <object class="GtkListBoxRow">
+                <property name="width_request">100</property>
+                <property name="height_request">5</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkListBoxRow">
+                <property name="width_request">100</property>
+                <property name="height_request">35</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">Filter Samples</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkListBoxRow">
+                <property name="width_request">100</property>
+                <property name="height_request">55</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <child>
+                  <object class="GtkSpinButton" id="filter_samples">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="adjustment">filter_samples_adjustment</property>
+                    <signal name="value-changed" handler="onValueChanged" swapped="no"/>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkListBoxRow">
+                <property name="width_request">100</property>
+                <property name="height_request">5</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkListBoxRow">
+                <property name="width_request">100</property>
+                <property name="height_request">35</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">Image Samples</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkListBoxRow">
+                <property name="width_request">100</property>
+                <property name="height_request">55</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <child>
+                  <object class="GtkSpinButton" id="image_samples">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="adjustment">image_samples_adjustment</property>
+                    <signal name="value-changed" handler="onValueChanged" swapped="no"/>
+                  </object>
+                </child>
+              </object>
+            </child>
           </object>
           <packing>
             <property name="resize">False</property>
@@ -358,8 +458,8 @@
         </child>
         <child>
           <object class="GtkImage" id="canvas">
-            <property name="width_request">800</property>
-            <property name="height_request">800</property>
+            <property name="width_request">1000</property>
+            <property name="height_request">1000</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
           </object>
