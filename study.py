@@ -87,7 +87,8 @@ class Study:
         self.quests = questutil.Quests(user=user,
                                        conditions=conditions,
                                        n_trials=n_trials,
-                                       random_trial_probability=0.5)
+                                       random_trial_probability=0.2,
+                                       repeat_incorrect_random_reference_trials=True)
         self.stimuli = None
         self.drawer = None
         self._random_reference_trial = False
@@ -120,11 +121,7 @@ class Study:
         # selected_left_image = event.x < widget.get_allocated_width() / 2
         # correct_response = self.stimuli.has_selected_artifact(
         #     selected_left_image)
-        selected_left_image = True
-        correct_response = not self._random_reference_trial
-
-        self.quests.add_response(selected_left_image, correct_response,
-                                 event.x, event.y)
+        self.quests.saw_artifact_response('image', event.x, event.y)
         self.setup_next_quest()
 
     def on_cannot_decide(self, widget):
@@ -138,9 +135,8 @@ class Study:
             self.window.close()
             return
 
-        percent = np.round(self.quests.percent_done, decimals=2)
         remainting = self.quests.estimated_minutes_remaining
-        self.window.set_title(f'{percent}% (~{remainting}min remaining)')
+        self.window.set_title(f'~{remainting}min remaining')
 
         artifact_size = condition['artifact_size']
         line_angle = condition['line_angle']

@@ -5,23 +5,34 @@ import psm.filter
 import psychopy.data
 import time
 import glutil
+import itertools
 
 
 class Quests:
-    def __init__(self, user, conditions, n_trials, random_trial_probability=0.0):
+    def __init__(self,
+                 user,
+                 conditions,
+                 n_trials,
+                 random_trial_probability=0.0,
+                 repeat_incorrect_random_reference_trials=False):
         self._quests = psychopy.data.MultiStairHandler(conditions=conditions,
                                                        nTrials=n_trials,
                                                        stairType='QUEST')
         self._quests.next()
 
-        self.number_of_trials = n_trials * len(conditions)
-        self.number_of_random_trials = int(self.number_of_trials * random_trial_probability)
-        self.number_of_trials += self.number_of_random_trials
+        self._trial_counter = 0
 
-        self._random_reference_trials = np.zeros((self.number_of_trials,), np.int)
+        total_n_trials = n_trials * len(conditions)
+        self.number_of_random_trials = int(total_n_trials *
+                                           random_trial_probability)
+        total_n_trials += self.number_of_random_trials
+
+        self._random_reference_trials = np.zeros((total_n_trials,), np.int)
         self._random_reference_trials[:self.number_of_random_trials] = 1
-        self._random_reference_trials = np.random.permutation(self._random_reference_trials).tolist()
-        self._is_random_reference = False
+        self._random_reference_trials = np.random.permutation(
+            self._random_reference_trials).tolist()
+        self._is_reference = False
+        self._repeat_incorrect_reference_trials = repeat_incorrect_random_reference_trials
 
         self._data_folder = os.path.join(os.path.dirname(__file__), 'data')
         os.makedirs(self._data_folder, exist_ok=True)
@@ -38,35 +49,20 @@ class Quests:
     def save_csv(self, filename):
         with open(filename, 'w') as file:
             results = self._quest_results()
-            keys = results[0].keys()
+            keys = sorted(set(itertools.chain.from_iterable(results)))
+
             file.write(','.join(keys) + '\n')
             for result in results:
                 try:
                     while True:
-                        row = [str(result[key].pop()) for key in keys]
+                        row = [str(result[key].pop(0)) if key in result else '' for key in keys]
                         file.write(','.join(row) + '\n')
                 except IndexError:
                     pass
-            # file.write(
-            #     'label,artifact_size,line_angle,velocity,filter_noise,filter_radius,decrease,side,correct,x,y\n'
-            # )
-            # for quest in self._quests.staircases:
-            #     condition = quest.condition
-            #     otherData = quest.otherData
-            #     label = condition['label']
-            #     artifact_size = condition['artifact_size']
-            #     line_angle = np.rad2deg(condition['line_angle'])
-            #     filter_radius = condition['filter_radius']
-            #     filter_noise = condition['filter_noise']
-            #     velocity = condition['velocity']
-            #     for intensity, response, info in zip(quest.intensities, quest.data, extra_info):
-            #         file.write(
-            #             f'{label},{artifact_size},{line_angle},{velocity},{filter_noise},{filter_radius*intensity},{response},{info[0]},{info[1]},{info[2]},{info[3]}\n'
-            #         )
 
     def _quest_result(self, quest):
-        n_values = len(quest.data)
-        result = {'intensities': quest.intensities[:n_values], 'responses': quest.data}
+        n_values = max([0] + [len(v) for v in quest.otherData.values()])
+        result = {}
         for k, v in quest.condition.items():
             result[k] = [v] * n_values
         return {**result, **quest.otherData}
@@ -80,44 +76,74 @@ class Quests:
 
     def next(self):
         if len(self._random_reference_trials) > 0:
-            self._is_random_reference = self._random_reference_trials.pop() == 1
+            self._is_reference = self._random_reference_trials.pop(
+            ) == 1
         else:
-            self._is_random_reference = False
-        if self._is_random_reference:
+            self._is_reference = False
+
+        if self._is_reference:
             intensity, condition = self.random_pick()
         else:
             self._quests.saveAsPickle(self._backup_file)
             intensity, condition = self._quests.next()
-        return intensity, condition, self._is_random_reference
+
+        return intensity, condition, self._is_reference
 
     def random_pick(self):
         i = np.random.randint(len(self._quests.staircases))
         quest = self._quests.staircases[i]
         condition = quest.condition
-        intensity = quest.intensities[-1] if len(quest.intensities) > 0 else quest.startVal
+        intensity = quest.intensities[-1] if len(
+            quest.intensities) > 0 else quest.startVal
         return intensity, condition
 
-    def add_response(self, selected_left, correct_response, x, y):
-        increase_radius = 0
-        decrease_radius = 1
-        if not self._is_random_reference:
-            side = 'left' if selected_left else 'right'
-            self._add_response_info_to_current_quest(side, correct_response, x, y)
-            self._quests.addResponse(
-                increase_radius if correct_response else decrease_radius)
+    def saw_artifact_response(self, selection, x, y):
+        self._add_response_info_to_current_quest(True, selection, x, y)
+
+        if self._is_reference and self._repeat_incorrect_reference_trials:
+            index = np.random.randint(len(self._random_reference_trials))
+            self._random_reference_trials.insert(index, 1)
 
     def cannot_decide_response(self):
-        decrease_radius = 1
-        if not self._is_random_reference:
-            self._add_response_info_to_current_quest(
-                side='none', correct=True, x='', y='')
-            self._quests.addResponse(decrease_radius)
+        self._add_response_info_to_current_quest(False, selection='none', x='', y='')
 
-    def _add_response_info_to_current_quest(self, side, correct, x, y):
-        self._quests.addOtherData('side', side)
+    def _add_response_info_to_current_quest(self, saw_artifact, selection, x, y):
+        is_artifact = not self._is_reference
+
+        quest = self._quests.currentStaircase
+
+        if self._is_reference:
+            correct = False if saw_artifact else True
+        else:
+            correct = True if saw_artifact else False
+
+        if is_artifact:
+            if saw_artifact:
+                change = 'increase'
+            else:
+                change = 'decrease'
+        else:
+            change = 'none'
+
+        intensity = quest.intensities[-1]
+
+        globalTrialId = self._trial_counter
+        self._trial_counter += 1
+        questTrialId = len(quest.otherData['globalTrialId']) if 'globalTrialId' in quest.otherData else 0
+
+        self._quests.addOtherData('globalTrialId', globalTrialId)
+        self._quests.addOtherData('questTrialId', questTrialId)
+        self._quests.addOtherData('intensity', intensity)
+        self._quests.addOtherData('intensityChange', change)
+        self._quests.addOtherData('selection', selection)
         self._quests.addOtherData('correct', '1' if correct else '0')
         self._quests.addOtherData('x', x)
         self._quests.addOtherData('y', y)
+
+        if change == 'increase':
+            self._quests.addResponse(0)
+        elif change == 'decrease':
+            self._quests.addResponse(1)
 
     @property
     def done_trials(self):
@@ -126,6 +152,10 @@ class Quests:
     @property
     def remaining_trials(self):
         return self.number_of_trials - self.done_trials
+
+    @property
+    def number_of_trials(self):
+        return self._quests.nTrials * len(self._quests.staircases)
 
     @property
     def percent_done(self):
@@ -152,8 +182,8 @@ class StimuliGenerator:
         self.reference_image = glutil.Texture2D(image_size, image_size)
         self.artifact_image = glutil.Texture2D(image_size, image_size)
 
-        self._draw_line = psm.filter.Line(
-            image_size, image_size, self.reference_image.obj)
+        self._draw_line = psm.filter.Line(image_size, image_size,
+                                          self.reference_image.obj)
 
         self._draw_artifact_line = psm.filter.ArtifactLine(
             image_size, image_size, self.artifact_image.obj)
@@ -170,7 +200,8 @@ class StimuliGenerator:
     def has_selected_artifact(self, selected_left):
         return self.flip_images if selected_left else not self.flip_images
 
-    def settings(self, artifact_size, line_angle, filter_radius, filter_noise, velocity):
+    def settings(self, artifact_size, line_angle, filter_radius, filter_noise,
+                 velocity):
         image_angle = np.random.rand() * np.pi * 2
         image_size = self._image_size
         half_image_size = image_size / 2.0
@@ -198,11 +229,12 @@ class StimuliGenerator:
             corner[0] * line_nx + corner[1] * line_ny for corner in corners
         ]
 
+        rand_x = 100 * (np.random.rand() * 2 - 1)
+        rand_y = 100 * (np.random.rand() * 2 - 1)
+
         self.artifact_size = max(1, artifact_size)
-        self.line_x = half_image_size + artifact_size * (
-            np.random.rand() * 2 - 1)
-        self.line_y = half_image_size + artifact_size * (
-            np.random.rand() * 2 - 1)
+        self.line_x = half_image_size + rand_x
+        self.line_y = half_image_size + rand_y
         self.current_line_x = self.line_x
         self.current_line_y = self.line_y
         self.line_angle = line_angle
@@ -227,27 +259,20 @@ class StimuliGenerator:
         if self.frame > 0 and self.line_vx == 0 and self.line_vy == 0:
             return False
 
-        self._draw_line(self.current_line_x,
-                        self.current_line_y,
-                        self.line_angle,
-                        self.filter_radius,
-                        self.filter_noise,
+        self._draw_line(self.current_line_x, self.current_line_y,
+                        self.line_angle, self.filter_radius, self.filter_noise,
                         self.image_angle)
-        self._draw_artifact_line(
-            self.current_line_x,
-            self.current_line_y,
-            self.line_angle,
-            self.artifact_size,
-            self.filter_radius,
-            self.filter_noise,
-            self.image_angle)
+        self._draw_artifact_line(self.current_line_x, self.current_line_y,
+                                 self.line_angle, self.artifact_size,
+                                 self.filter_radius, self.filter_noise,
+                                 self.image_angle)
 
         self.current_line_x += self.line_vx * elapsed_time
         self.current_line_y += self.line_vy * elapsed_time
         current_line_d = self.current_line_x * self.line_nx + self.current_line_y * self.line_ny
         if current_line_d < self.min_image_d or self.max_image_d < current_line_d:
             current_line_d = min(max(current_line_d, self.min_image_d),
-                                    self.max_image_d)
+                                 self.max_image_d)
             self.current_line_x = self.line_nx * current_line_d
             self.current_line_y = self.line_ny * current_line_d
             self.line_vx = -self.line_vx
