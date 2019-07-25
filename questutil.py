@@ -8,13 +8,20 @@ import glutil
 
 
 class Quests:
-    def __init__(self, user, conditions, n_trials):
+    def __init__(self, user, conditions, n_trials, random_trial_probability=0.0):
         self._quests = psychopy.data.MultiStairHandler(conditions=conditions,
                                                        nTrials=n_trials,
                                                        stairType='QUEST')
         self._quests.next()
 
-        self._start_time = time.time()
+        self.number_of_trials = n_trials * len(conditions)
+        self.number_of_random_trials = int(self.number_of_trials * random_trial_probability)
+        self.number_of_trials += self.number_of_random_trials
+
+        self._random_reference_trials = np.zeros((self.number_of_trials,), np.int)
+        self._random_reference_trials[:self.number_of_random_trials] = 1
+        self._random_reference_trials = np.random.permutation(self._random_reference_trials).tolist()
+        self._is_random_reference = False
 
         self._data_folder = os.path.join(os.path.dirname(__file__), 'data')
         os.makedirs(self._data_folder, exist_ok=True)
@@ -26,60 +33,91 @@ class Quests:
         with open(os.path.join(self._data_folder, 'info.txt'), 'w') as file:
             file.write(f'user: {user}\n')
 
+        self._start_time = time.time()
+
     def save_csv(self, filename):
         with open(filename, 'w') as file:
-            file.write(
-                'label,artifact_size,line_angle,velocity,filter_noise,filter_radius,decrease,side,correct,x,y\n'
-            )
-            for quest in self._quests.staircases:
-                condition = quest.condition
-                extra_info = quest.extraInfo if quest.extraInfo is not None else []
-                label = condition['label']
-                artifact_size = condition['artifact_size']
-                line_angle = np.rad2deg(condition['line_angle'])
-                filter_radius = condition['filter_radius']
-                filter_noise = condition['filter_noise']
-                velocity = condition['velocity']
-                for intensity, response, info in zip(quest.intensities, quest.data, extra_info):
-                    file.write(
-                        f'{label},{artifact_size},{line_angle},{velocity},{filter_noise},{filter_radius*intensity},{response},{info[0]},{info[1]},{info[2]},{info[3]}\n'
-                    )
+            results = self._quest_results()
+            keys = results[0].keys()
+            file.write(','.join(keys) + '\n')
+            for result in results:
+                try:
+                    while True:
+                        row = [str(result[key].pop()) for key in keys]
+                        file.write(','.join(row) + '\n')
+                except IndexError:
+                    pass
+            # file.write(
+            #     'label,artifact_size,line_angle,velocity,filter_noise,filter_radius,decrease,side,correct,x,y\n'
+            # )
+            # for quest in self._quests.staircases:
+            #     condition = quest.condition
+            #     otherData = quest.otherData
+            #     label = condition['label']
+            #     artifact_size = condition['artifact_size']
+            #     line_angle = np.rad2deg(condition['line_angle'])
+            #     filter_radius = condition['filter_radius']
+            #     filter_noise = condition['filter_noise']
+            #     velocity = condition['velocity']
+            #     for intensity, response, info in zip(quest.intensities, quest.data, extra_info):
+            #         file.write(
+            #             f'{label},{artifact_size},{line_angle},{velocity},{filter_noise},{filter_radius*intensity},{response},{info[0]},{info[1]},{info[2]},{info[3]}\n'
+            #         )
+
+    def _quest_result(self, quest):
+        n_values = len(quest.data)
+        result = {'intensities': quest.intensities[:n_values], 'responses': quest.data}
+        for k, v in quest.condition.items():
+            result[k] = [v] * n_values
+        return {**result, **quest.otherData}
+
+    def _quest_results(self):
+        return [self._quest_result(q) for q in self._quests.staircases]
 
     def save(self):
         self._quests.saveAsJson(os.path.join(self._data_folder, 'result.json'))
         self.save_csv(os.path.join(self._data_folder, 'result.csv'))
 
     def next(self):
-        self._quests.saveAsPickle(self._backup_file)
-        return self._quests.next()
+        if len(self._random_reference_trials) > 0:
+            self._is_random_reference = self._random_reference_trials.pop() == 1
+        else:
+            self._is_random_reference = False
+        if self._is_random_reference:
+            intensity, condition = self.random_pick()
+        else:
+            self._quests.saveAsPickle(self._backup_file)
+            intensity, condition = self._quests.next()
+        return intensity, condition, self._is_random_reference
+
+    def random_pick(self):
+        i = np.random.randint(len(self._quests.staircases))
+        quest = self._quests.staircases[i]
+        condition = quest.condition
+        intensity = quest.intensities[-1] if len(quest.intensities) > 0 else quest.startVal
+        return intensity, condition
 
     def add_response(self, selected_left, correct_response, x, y):
         increase_radius = 0
         decrease_radius = 1
-        self._add_response_info_to_current_quest(selected_left, correct_response, x, y)
-        self._quests.addResponse(
-            increase_radius if correct_response else decrease_radius)
+        if not self._is_random_reference:
+            side = 'left' if selected_left else 'right'
+            self._add_response_info_to_current_quest(side, correct_response, x, y)
+            self._quests.addResponse(
+                increase_radius if correct_response else decrease_radius)
 
     def cannot_decide_response(self):
         decrease_radius = 1
-        self._add_empty_response_info_to_current_quest()
-        self._quests.addResponse(decrease_radius)
+        if not self._is_random_reference:
+            self._add_response_info_to_current_quest(
+                side='none', correct=True, x='', y='')
+            self._quests.addResponse(decrease_radius)
 
-    def _add_response_info_to_current_quest(self, selected_left, correct_response, x, y):
-        current_quest = self._quests.currentStaircase
-        if current_quest.extraInfo is None:
-            current_quest.extraInfo = []
-        if correct_response is None:
-            side = 'none'
-            correct_response = ''
-            x = ''
-            y = ''
-        else:
-            side = 'left' if selected_left else 'right'
-        current_quest.extraInfo.append((side, '1' if correct_response else '0', x, y))
-
-    def _add_empty_response_info_to_current_quest(self):
-        self._add_response_info_to_current_quest(False, None, 0, 0)
+    def _add_response_info_to_current_quest(self, side, correct, x, y):
+        self._quests.addOtherData('side', side)
+        self._quests.addOtherData('correct', '1' if correct else '0')
+        self._quests.addOtherData('x', x)
+        self._quests.addOtherData('y', y)
 
     @property
     def done_trials(self):
@@ -88,10 +126,6 @@ class Quests:
     @property
     def remaining_trials(self):
         return self.number_of_trials - self.done_trials
-
-    @property
-    def number_of_trials(self):
-        return self._quests.nTrials * len(self._quests.staircases)
 
     @property
     def percent_done(self):

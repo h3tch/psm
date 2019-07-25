@@ -38,7 +38,7 @@ conditions = [
         'filter_noise': 10,
         'filter_radius': 100.0
     },
-    {
+    # {
         #     'label': 'angle0 noise0 speed300',
         #     'startVal': 0.7,
         #     'startValSd': 0.2,
@@ -57,25 +57,25 @@ conditions = [
         #     'filter_noise': 10,
         #     'filter_radius': 200.0
         # }, {
-        'label': 'angle0 noise0 speed200',
-        'startVal': 0.7,
-        'startValSd': 0.2,
-        'artifact_size': 8,
-        'line_angle': np.deg2rad(0),
-        'velocity': 200.0,
-        'filter_noise': 0,
-        'filter_radius': 200.0
-    },
-    {
-        'label': 'angle0 noise10 speed200',
-        'startVal': 0.7,
-        'startValSd': 0.2,
-        'artifact_size': 8,
-        'line_angle': np.deg2rad(0),
-        'velocity': 200.0,
-        'filter_noise': 10,
-        'filter_radius': 200.0
-    }
+    #     'label': 'angle0 noise0 speed200',
+    #     'startVal': 0.7,
+    #     'startValSd': 0.2,
+    #     'artifact_size': 8,
+    #     'line_angle': np.deg2rad(0),
+    #     'velocity': 200.0,
+    #     'filter_noise': 0,
+    #     'filter_radius': 200.0
+    # },
+    # {
+    #     'label': 'angle0 noise10 speed200',
+    #     'startVal': 0.7,
+    #     'startValSd': 0.2,
+    #     'artifact_size': 8,
+    #     'line_angle': np.deg2rad(0),
+    #     'velocity': 200.0,
+    #     'filter_noise': 10,
+    #     'filter_radius': 200.0
+    # }
 ]
 
 conditions = [{**base_condition, **c} for c in conditions]
@@ -86,9 +86,11 @@ class Study:
 
         self.quests = questutil.Quests(user=user,
                                        conditions=conditions,
-                                       n_trials=n_trials)
+                                       n_trials=n_trials,
+                                       random_trial_probability=0.5)
         self.stimuli = None
         self.drawer = None
+        self._random_reference_trial = False
 
         handlers = {
             'onDestroy': self.on_quit,
@@ -119,7 +121,7 @@ class Study:
         # correct_response = self.stimuli.has_selected_artifact(
         #     selected_left_image)
         selected_left_image = True
-        correct_response = True
+        correct_response = not self._random_reference_trial
 
         self.quests.add_response(selected_left_image, correct_response,
                                  event.x, event.y)
@@ -131,12 +133,12 @@ class Study:
 
     def setup_next_quest(self):
         try:
-            intensity, condition = self.quests.next()
+            intensity, condition, self._random_reference_trial = self.quests.next()
         except StopIteration:
             self.window.close()
             return
 
-        percent = self.quests.percent_done
+        percent = np.round(self.quests.percent_done, decimals=2)
         remainting = self.quests.estimated_minutes_remaining
         self.window.set_title(f'{percent}% (~{remainting}min remaining)')
 
@@ -170,11 +172,14 @@ class Study:
         del self.drawer
 
     def on_render(self, gl_area, gl_context):
-        self.stimuli.render(reference=False, artifact=True)
+        self.stimuli.render(reference=self._random_reference_trial,
+                            artifact=not self._random_reference_trial)
         self.drawer.bind()
         # self.drawer.draw(0.0, 0.0, 0.5, 1.0, self.stimuli.reference_image)
-        # self.drawer.draw(0.5, 0.0, 0.5, 1.0, self.stimuli.artifact_image)
-        self.drawer.draw(0.0, 0.0, 1.0, 1.0, self.stimuli.artifact_image)
+        if self._random_reference_trial:
+            self.drawer.draw(0.0, 0.0, 1.0, 1.0, self.stimuli.reference_image)
+        else:
+            self.drawer.draw(0.0, 0.0, 1.0, 1.0, self.stimuli.artifact_image)
         gl_area.queue_draw()
 
 

@@ -12,39 +12,10 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "Python: Main",
+            "name": "Python: Study",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/main.py",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "Python: Stimuli",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/stimuli.py",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "Python: App",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/gtk_demo.py",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "Python: Animation",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/animate.py",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "Python: Build",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/setup.py",
-            "args": ["build_ext"],
+            "program": "${workspaceFolder}/study.py",
             "console": "integratedTerminal"
         },
         {
