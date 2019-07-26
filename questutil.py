@@ -188,7 +188,7 @@ class StimuliGenerator:
         self._draw_artifact_line = psm.filter.ArtifactLine(
             image_size, image_size, self.artifact_image.obj)
 
-        self.settings(1, 0, 0, 0, 0, 0)
+        self.settings(1, 0, 0, 0, 0, 0, 1)
         self._last_time = time.time()
 
     def __del__(self):
@@ -201,7 +201,7 @@ class StimuliGenerator:
         return self.flip_images if selected_left else not self.flip_images
 
     def settings(self, artifact_size, line_angle, filter_radius, filter_noise,
-                 filter_samples, velocity):
+                 filter_samples, velocity, image_samples):
         image_angle = np.random.rand() * np.pi * 2
         image_size = self._image_size
         half_image_size = image_size / 2.0
@@ -247,6 +247,7 @@ class StimuliGenerator:
         self.filter_noise = np.clip(filter_noise, 0, 255) / 255.0
         self.filter_samples = max(0.0, filter_samples)
         self.image_angle = image_angle
+        self.image_samples = min(max(image_samples, 1), 8)
         self.flip_images = np.random.rand() >= 0.5
         self.min_image_d = min(corner_distances)
         self.max_image_d = max(corner_distances)
@@ -267,7 +268,8 @@ class StimuliGenerator:
         self._draw_artifact_line(self.current_line_x, self.current_line_y,
                                  self.line_angle, self.artifact_size,
                                  self.filter_radius, self.filter_noise,
-                                 self.filter_samples, self.image_angle)
+                                 self.filter_samples, self.image_angle,
+                                 self.image_samples)
 
         self.current_line_x += self.line_vx * elapsed_time
         self.current_line_y += self.line_vy * elapsed_time

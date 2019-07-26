@@ -35,9 +35,7 @@ class Gui:
 
         image_width = self.canvas.get_allocated_width()
         image_height = self.canvas.get_allocated_height()
-        self.image_sum = np.zeros((image_height, image_width, 4), dtype=np.uint32)
         self.image_data = np.zeros((image_height, image_width, 4), dtype=np.uint8)
-        self.image_sample = np.zeros((image_height, image_width, 4), dtype=np.uint8)
         image_surface = cairo.ImageSurface.create_for_data(
             self.image_data, cairo.FORMAT_ARGB32, image_width, image_height)
         self.canvas.set_from_surface(image_surface)
@@ -63,23 +61,16 @@ class Gui:
         filter_samples = self.filter_samples.get_value()
         image_samples = int(self.image_samples.get_value())
 
-        self.image_sum[:] = 0
-        for i in range(image_samples):
-            if i > 0:
-                rotation = np.pi / (4 * i) - np.deg2rad(5)
-                line_angle += rotation
-                #image_angle += rotation
-            self._draw_artifact_line(line_x,
-                                     line_y,
-                                     line_angle,
-                                     artifact_size,
-                                     filter_radius,
-                                     filter_noise,
-                                     filter_samples,
-                                     image_angle,
-                                     result=self.image_sample)
-            self.image_sum += self.image_sample
-        self.image_data[:] = self.image_sum / image_samples
+        self._draw_artifact_line(line_x,
+                                 line_y,
+                                 line_angle,
+                                 artifact_size,
+                                 filter_radius,
+                                 filter_noise,
+                                 filter_samples,
+                                 image_angle,
+                                 image_samples,
+                                 result=self.image_data)
 
         self.image_data[:, :, 3] = 255
         self.canvas.queue_draw()

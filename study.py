@@ -19,7 +19,7 @@ base_condition = {
 
 conditions = [
     {
-        'label': 'angle1 noise0 speed0',
+        'label': 'angle1',
         'startVal': 0.7,
         'startValSd': 0.2,
         'artifact_size': 8,
@@ -27,18 +27,92 @@ conditions = [
         'velocity': 0.0,
         'filter_noise': 0,
         'filter_radius': 100.0,
-        'filter_samples': 100.0
+        'filter_samples': 100.0,
+        'image_samples': 1
     },
     {
-        'label': 'angle1 noise10 speed0',
+        'label': 'angle1 noise20',
         'startVal': 0.7,
         'startValSd': 0.2,
         'artifact_size': 8,
         'line_angle': np.deg2rad(1),
         'velocity': 0.0,
-        'filter_noise': 10,
+        'filter_noise': 20,
         'filter_radius': 100.0,
-        'filter_samples': 100.0
+        'filter_samples': 100.0,
+        'image_samples': 1
+    },
+    {
+        'label': 'angle1 imagesamples2',
+        'startVal': 0.7,
+        'startValSd': 0.2,
+        'artifact_size': 8,
+        'line_angle': np.deg2rad(1),
+        'velocity': 0.0,
+        'filter_noise': 0,
+        'filter_radius': 100.0,
+        'filter_samples': 100.0,
+        'image_samples': 2
+    },
+    {
+        'label': 'angle1 noise20 imagesamples2',
+        'startVal': 0.7,
+        'startValSd': 0.2,
+        'artifact_size': 8,
+        'line_angle': np.deg2rad(1),
+        'velocity': 0.0,
+        'filter_noise': 20,
+        'filter_radius': 100.0,
+        'filter_samples': 100.0,
+        'image_samples': 2
+    },
+    {
+        'label': 'angle23',
+        'startVal': 0.7,
+        'startValSd': 0.2,
+        'artifact_size': 8,
+        'line_angle': np.deg2rad(23),
+        'velocity': 0.0,
+        'filter_noise': 0,
+        'filter_radius': 100.0,
+        'filter_samples': 100.0,
+        'image_samples': 1
+    },
+    {
+        'label': 'angle23 noise20',
+        'startVal': 0.7,
+        'startValSd': 0.2,
+        'artifact_size': 8,
+        'line_angle': np.deg2rad(23),
+        'velocity': 0.0,
+        'filter_noise': 20,
+        'filter_radius': 100.0,
+        'filter_samples': 100.0,
+        'image_samples': 1
+    },
+    {
+        'label': 'angle23 imagesamples2',
+        'startVal': 0.7,
+        'startValSd': 0.2,
+        'artifact_size': 8,
+        'line_angle': np.deg2rad(23),
+        'velocity': 0.0,
+        'filter_noise': 0,
+        'filter_radius': 100.0,
+        'filter_samples': 100.0,
+        'image_samples': 2
+    },
+    {
+        'label': 'angle23 noise20 imagesamples2',
+        'startVal': 0.7,
+        'startValSd': 0.2,
+        'artifact_size': 8,
+        'line_angle': np.deg2rad(23),
+        'velocity': 0.0,
+        'filter_noise': 20,
+        'filter_radius': 100.0,
+        'filter_samples': 100.0,
+        'image_samples': 2
     },
     # {
         #     'label': 'angle0 noise0 speed300',
@@ -89,7 +163,7 @@ class Study:
         self.quests = questutil.Quests(user=user,
                                        conditions=conditions,
                                        n_trials=n_trials,
-                                       random_trial_probability=0.2,
+                                       random_trial_probability=0.3,
                                        repeat_incorrect_random_reference_trials=True)
         self.stimuli = None
         self.drawer = None
@@ -146,9 +220,11 @@ class Study:
         filter_noise = condition['filter_noise']
         filter_samples = condition['filter_samples']
         velocity = condition['velocity']
+        image_samples = condition['image_samples']
 
         self.stimuli.settings(artifact_size, line_angle, filter_radius,
-                              filter_noise, filter_samples, velocity)
+                              filter_noise, filter_samples, velocity,
+                              image_samples)
 
     def on_create_context(self, gl_area):
         ctx = gl_area.get_window().create_gl_context()

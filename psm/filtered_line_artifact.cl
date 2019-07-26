@@ -65,16 +65,16 @@ __kernel void filtered_line_artifact(const unsigned int width,
                                      const float filter_noise,
                                      const float filter_samples,
                                      const float image_angle,
+                                     const unsigned int image_samples,
                                      __write_only image2d_t result)
 {
-    const int col = get_global_id(0);
-    const int row = get_global_id(1);
+    const float col = (float)get_global_id(0);
+    const float row = (float)get_global_id(1);
 
-    float filter_x = (float)col;
-    float filter_y = (float)row;
+    float filter_x = col;
+    float filter_y = row;
 
-    rotate_point_arround_image_center(
-        width, height, image_angle, &filter_x, &filter_y);
+    rotate_point(line_x, line_y, image_angle, &filter_x, &filter_y);
 
     float color = filter_line(line_x,
                               line_y,
@@ -83,8 +83,26 @@ __kernel void filtered_line_artifact(const unsigned int width,
                               filter_x,
                               filter_y,
                               filter_radius);
+    bool in_penumbra = 0.0f < color && color < 1.0f;
 
-    if (0.0f < color && color < 1.0f)
+    for (unsigned int i = 1; i < image_samples; ++i) {
+        const float rotation = (40.0f / i) * M_PI / 180.0f;
+
+        filter_x = col;
+        filter_y = row;
+
+        rotate_point(line_x, line_y, image_angle + rotation, &filter_x, &filter_y);
+        color += filter_line(line_x,
+                             line_y,
+                             line_angle + rotation,
+                             artifact_size,
+                             filter_x,
+                             filter_y,
+                             filter_radius);
+    }
+    color /= (float)image_samples;
+
+    if (in_penumbra)
         color += filter_noise * poisson_noise(filter_x, filter_y, filter_samples * color);
 
     color = min(max(color, 0.0f), 1.0f);

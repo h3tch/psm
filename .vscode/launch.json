@@ -19,6 +19,13 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "Python: Demo",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/demo.py",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "GDB Attach",
             "type": "cppdbg",
             "request": "attach",

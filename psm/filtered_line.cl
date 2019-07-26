@@ -19,8 +19,7 @@ __kernel void filtered_line(const unsigned int width,
     float filter_x = (float)col;
     float filter_y = (float)row;
 
-    rotate_point_arround_image_center(
-        width, height, image_angle, &filter_x, &filter_y);
+    rotate_point(line_x, line_y, image_angle, &filter_x, &filter_y);
 
     float color = estimate_circle_half_space_overlap(
         filter_x, filter_y, filter_radius, line_x, line_y, line_angle);
