@@ -1,3 +1,4 @@
+import copy
 import glob
 import numpy as np
 import os
@@ -6,6 +7,7 @@ import psychopy.data
 import time
 import glutil
 import itertools
+import pickle
 from OpenGL.GL import glClear, glFlush, GL_COLOR_BUFFER_BIT
 
 
@@ -14,7 +16,7 @@ class Quests:
                  user,
                  conditions,
                  n_trials,
-                 random_trial_probability=0.0,
+                 random_reference_probability=0.0,
                  repeat_incorrect_random_reference_trials=False):
         self._quests = psychopy.data.MultiStairHandler(conditions=conditions,
                                                        stairType='simple')
@@ -24,7 +26,7 @@ class Quests:
 
         total_n_trials = n_trials * len(conditions)
         self.number_of_random_trials = int(total_n_trials *
-                                           random_trial_probability)
+                                           random_reference_probability)
         total_n_trials += self.number_of_random_trials
 
         self._random_reference_trials = np.zeros((total_n_trials, ), np.int)
@@ -187,25 +189,37 @@ class Quests:
 
 
 class MultiQuest:
-    def __init__(self, user, conditions, **kwargs):
+    def __init__(self,
+                 user,
+                 conditions,
+                 random_reference_probability=0.0,
+                 **kwargs):
         self._user = user
         self._conditions = conditions
         self._quests = [
             psychopy.data.QuestHandler(**condition) for condition in conditions
         ]
         self._quest_labels = [condition['label'] for condition in conditions]
+        self._random_reference_trials = None
+        self._random_reference_probability = random_reference_probability
+
+        self._init_output_folder(user)
+        self._load_backup()
+
         self._active_quest_index = self._random_quest_index()
         self._active_quest_index_needs_update = False
-        self._ended_quests = {}
-
-        self._init_output_folder()
-        self._is_reference = False
+        self._is_reference = self._random_reference_decision
+        self._reference_quest = copy.deepcopy(self._active_quest)
         self._trial_counter = 0
         self._reversal_counter = 0
         self._start_time = time.time()
 
     def saw_artifact_response(self, selection, x, y):
         self._add_response_info_to_current_quest(True, selection, x, y)
+
+    def saw_line_response(self):
+        self.cannot_decide_response()
+        self._active_quest_index_needs_update = True
 
     def cannot_decide_response(self):
         self._add_response_info_to_current_quest(False,
@@ -216,15 +230,24 @@ class MultiQuest:
     def next(self):
         if self._active_quest_index_needs_update:
             self._active_quest_index_needs_update = False
+            self._is_reference = self._random_reference_decision
             quest_changed = True
             self._reversal_counter += 1
             self._next_quest()
+            if self._is_reference:
+                self._reference_quest = copy.deepcopy(self._active_quest)
+            else:
+                self._reference_quest = None
         else:
             quest_changed = False
 
         if not self._has_active_quest:
             raise StopIteration
-        intensity = self._active_quest.next()
+
+        if self._is_reference:
+            intensity = self._reference_quest.next()
+        else:
+            intensity = self._active_quest.next()
         condition = self._active_condition
         return intensity, condition, self._is_reference, quest_changed
 
@@ -264,37 +287,47 @@ class MultiQuest:
     def _random_quest_index(self):
         return np.random.randint(len(self._quests))
 
+    @property
+    def _random_reference_decision(self):
+        if self._random_reference_trials is None:#
+            n = 20
+            s = int(n * (1.0 - self._random_reference_probability))
+            t = int(n * self._random_reference_probability)
+            a = np.zeros((s + t,), np.bool)
+            a[:t] = True
+            self._random_reference_trials = np.random.permutation(a).tolist()
+        return self._random_reference_trials.pop() == 1
+
     def _add_response_info_to_current_quest(self, saw_artifact, selection, x,
                                             y):
-        is_artifact = not self._is_reference
-
-        quest = self._active_quest
 
         if self._is_reference:
             correct = False if saw_artifact else True
+            quest = self._reference_quest
         else:
             correct = True if saw_artifact else False
+            quest = self._active_quest
 
-        if is_artifact:
-            change = 'increase' if saw_artifact else 'decrease'
-        else:
-            change = 'none'
+        change = 'increase' if saw_artifact else 'decrease'
 
-        intensity = self._active_quest.intensities[-1]
+        intensity = quest.intensities[-1]
 
         globalTrialId = self._trial_counter
         self._trial_counter += 1
         questTrialId = len(quest.otherData['globalTrialId']
                            ) if 'globalTrialId' in quest.otherData else 0
 
-        quest.addOtherData('globalTrialId', globalTrialId)
-        quest.addOtherData('questTrialId', questTrialId)
-        quest.addOtherData('intensity', intensity)
-        quest.addOtherData('intensityChange', change)
-        quest.addOtherData('selection', selection)
-        quest.addOtherData('correct', '1' if correct else '0')
-        quest.addOtherData('x', x)
-        quest.addOtherData('y', y)
+        active = self._active_quest
+        active.addOtherData('user', self._user)
+        active.addOtherData('globalTrialId', globalTrialId)
+        active.addOtherData('questTrialId', questTrialId)
+        active.addOtherData('intensity', intensity)
+        active.addOtherData('intensityChange', change)
+        active.addOtherData('selection', selection)
+        active.addOtherData('correct', '1' if correct else '0')
+        active.addOtherData('x', x)
+        active.addOtherData('y', y)
+        active.addOtherData('is_reference', self._is_reference)
 
         if change == 'increase':
             quest.addResponse(0)
@@ -304,36 +337,53 @@ class MultiQuest:
             if quest.finished:
                 self._active_quest_index_needs_update = True
 
+        self._save_backup()
+
     def _next_quest(self):
-        self._update_active_quest_index()
-        while self._has_active_quest and self._active_quest.finished:
-            self._end_active_quest()
-            self._update_active_quest_index()
+        self._active_quest_index = self._next_active_quest_index()
 
-    def _end_active_quest(self):
-        self._ended_quests[self._active_label] = self._active_quest
-        del self._quest_labels[self._active_quest_index]
-        del self._quests[self._active_quest_index]
-
-    def _update_active_quest_index(self):
-        if len(self._quests) == 0:
+    def _next_active_quest_index(self):
+        indices = [i for i, q in enumerate(self._quests) if not q.finished]
+        if len(indices) == 0:
             self._active_quest_index = None
             return
+        if len(indices) > 1 and self._active_quest_index is not None:
+            indices.remove(self._active_quest_index)
+        return np.random.choice(indices)
 
-        next_active_quest = self._random_quest_index()
-
-        while len(self._quests
-                  ) > 1 and next_active_quest == self._active_quest_index:
-            next_active_quest = self._random_quest_index()
-
-        self._active_quest_index = next_active_quest
-
-    def _init_output_folder(self):
+    def _init_output_folder(self, user=None):
         self._data_folder = os.path.join(os.path.dirname(__file__), 'data')
         os.makedirs(self._data_folder, exist_ok=True)
-        count = len(glob.glob(os.path.join(self._data_folder, '*/'))) + 1
-        self._data_folder = os.path.join(self._data_folder, f'{count}')
+        if user is None or len(user) == 0:
+            count = len(glob.glob(os.path.join(self._data_folder, '*/'))) + 1
+            user = f'{count}'
+        self._user = user
+        self._data_folder = os.path.join(self._data_folder, user)
         os.makedirs(self._data_folder, exist_ok=True)
+
+    def _load_backup(self):
+        n_backups = len(glob.glob(os.path.join(self._data_folder, '*.pickle')))
+        if n_backups == 0:
+            return
+        filename = os.path.join(self._data_folder, f'{n_backups}.pickle')
+        with open(filename, 'rb') as file_handle:
+            backup = pickle.load(file_handle)
+        self._quest_labels = backup['labels']
+        self._quests = backup['quests']
+        self._conditions = backup['conditions']
+        self._trial_counter = backup['trial_count']
+
+    def _save_backup(self):
+        backup = {
+            'labels': self._quest_labels,
+            'quests': self._quests,
+            'conditions': self._conditions,
+            'trial_count': self._trial_counter
+        }
+        n_backups = len(glob.glob(os.path.join(self._data_folder, '*.pickle')))
+        filename = os.path.join(self._data_folder, f'{n_backups + 1}.pickle')
+        with open(filename, 'wb') as file_handle:
+            pickle.dump(backup, file_handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     @property
     def reversal_counter(self):
@@ -409,6 +459,11 @@ class StimuliGenerator:
         self._draw_line = None
         self._draw_artifact_line = None
 
+    @property
+    def is_showing(self):
+        return time.time(
+        ) - self._last_update_time >= self._black_screen_timeout
+
     def has_selected_artifact(self, selected_left):
         return self.flip_images if selected_left else not self.flip_images
 
@@ -480,6 +535,7 @@ class StimuliGenerator:
                 self._clear_image(self._draw_line.cl_image)
             if artifact:
                 self._clear_image(self._draw_artifact_line.cl_image)
+            time.sleep(0.01)
             return True
 
         # if there is no animation we do not need to render again
@@ -495,8 +551,8 @@ class StimuliGenerator:
             self._draw_artifact_line(self.current_line_x, self.current_line_y,
                                      self.line_angle, self.artifact_size,
                                      self.filter_radius, self.filter_noise,
-                                     self.filter_samples, self.image_angle,
-                                     self.image_samples)
+                                     self.filter_samples, 0.0,
+                                     self.image_angle, self.image_samples)
 
         self.current_line_x += self.line_vx * elapsed_time
         self.current_line_y += self.line_vy * elapsed_time

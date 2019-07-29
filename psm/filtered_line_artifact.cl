@@ -64,6 +64,7 @@ __kernel void filtered_line_artifact(const unsigned int width,
                                      const float filter_radius,
                                      const float filter_noise,
                                      const float filter_samples,
+                                     const float filter_radius_noise,
                                      const float image_angle,
                                      const unsigned int image_samples,
                                      __write_only image2d_t result)
@@ -73,6 +74,7 @@ __kernel void filtered_line_artifact(const unsigned int width,
 
     float filter_x = col;
     float filter_y = row;
+    const float radius = filter_radius * (filter_radius_noise * randf(line_x + row, line_y + col) + (1.0f - filter_radius_noise / 2));
 
     rotate_point(line_x, line_y, image_angle, &filter_x, &filter_y);
 
@@ -82,7 +84,7 @@ __kernel void filtered_line_artifact(const unsigned int width,
                               artifact_size,
                               filter_x,
                               filter_y,
-                              filter_radius);
+                              radius);
     bool in_penumbra = 0.0f < color && color < 1.0f;
 
     for (unsigned int i = 1; i < image_samples; ++i) {
@@ -98,7 +100,7 @@ __kernel void filtered_line_artifact(const unsigned int width,
                              artifact_size,
                              filter_x,
                              filter_y,
-                             filter_radius);
+                             radius);
     }
     color /= (float)image_samples;
 

@@ -131,6 +131,7 @@ class ArtifactLine(Base):
                  filter_radius: float,
                  filter_noise: float,
                  filter_samples: float,
+                 filter_radius_noise: float,
                  image_angle: float,
                  image_samples: int,
                  result: np.array = None):
@@ -148,6 +149,7 @@ class ArtifactLine(Base):
                                              np.float32(filter_radius),
                                              np.float32(filter_noise),
                                              np.float32(filter_samples),
+                                             np.float32(filter_radius_noise),
                                              np.float32(image_angle),
                                              np.uint32(image_samples),
                                              self._result_image)

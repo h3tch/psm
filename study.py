@@ -15,7 +15,9 @@ class Study:
     def __init__(self, user, conditions=None, n_trials=20):
         if conditions is None:
             conditions = self._load_config()
-        self.quests = questutil.MultiQuest(user=user, conditions=conditions)
+        self.quests = questutil.MultiQuest(user=user,
+                                           conditions=conditions,
+                                           random_reference_probability=0.2)
         self.stimuli = None
         self.drawer = None
         self._random_reference_trial = False
@@ -26,7 +28,8 @@ class Study:
             'onRealize': self.on_realize,
             'onUnrealize': self.on_unrealize,
             'onRender': self.on_render,
-            'onCannotDecide': self.on_cannot_decide
+            'onCannotDecide': self.on_cannot_decide,
+            'onIsLine': self.on_is_line
         }
 
         self.builder = Gtk.Builder()
@@ -37,6 +40,7 @@ class Study:
         self.window = self.builder.get_object("window")
         self.window.show_all()
 
+        self.quest_changes = 0
         self._start_time = time.time()
         self._last_time = self._start_time
 
@@ -45,14 +49,21 @@ class Study:
         Gtk.main_quit(*args)
 
     def on_different(self, widget, event, *args):
-        # selected_left_image = event.x < widget.get_allocated_width() / 2
-        # correct_response = self.stimuli.has_selected_artifact(
-        #     selected_left_image)
+        if not self.stimuli.is_showing:
+            return
         self.quests.saw_artifact_response('image', event.x, event.y)
         self.setup_next_quest()
 
     def on_cannot_decide(self, widget):
+        if not self.stimuli.is_showing:
+            return
         self.quests.cannot_decide_response()
+        self.setup_next_quest()
+
+    def on_is_line(self, widget):
+        if not self.stimuli.is_showing:
+            return
+        self.quests.saw_line_response()
         self.setup_next_quest()
 
     def setup_next_quest(self):
@@ -75,10 +86,15 @@ class Study:
         image_samples = condition['image_samples']
 
         if quest_changed:
-            long_pause = ((self.quests.reversal_counter + 1) % 5) == 0
-            pause = 10.0 if long_pause else 3.0
-        else:
-            pause = 0.0
+            self.quest_changes += 1
+            if (self.quest_changes % 30) == 0:  # very long pause
+                pause = 30.0
+            elif (self.quest_changes % 5) == 0:  # long pause
+                pause = 10.0
+            else:  # short pause
+                pause = 3.0
+        else:  # no pause
+            pause = 0.5
 
         self.stimuli.settings(artifact_size, line_angle, filter_radius,
                               filter_noise, filter_samples, velocity,

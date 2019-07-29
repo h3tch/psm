@@ -56,6 +56,12 @@
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="radius_noise_adjustment">
+    <property name="upper">2</property>
+    <property name="step_increment">0.050000000000000003</property>
+    <property name="page_increment">0.10000000000000001</property>
+    <property name="page_size">0.01</property>
+  </object>
   <object class="GtkWindow" id="window">
     <property name="width_request">1100</property>
     <property name="height_request">1000</property>
@@ -148,6 +154,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="adjustment">filter_adjustment</property>
+                    <property name="digits">2</property>
                     <signal name="value-changed" handler="onValueChanged" swapped="no"/>
                   </object>
                 </child>
@@ -234,6 +241,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="adjustment">angle_adjustment</property>
+                    <property name="digits">2</property>
                     <signal name="value-changed" handler="onValueChanged" swapped="no"/>
                   </object>
                 </child>
@@ -277,6 +285,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="adjustment">line_x_adjustment</property>
+                    <property name="digits">2</property>
                     <signal name="value-changed" handler="onValueChanged" swapped="no"/>
                   </object>
                 </child>
@@ -319,6 +328,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="adjustment">line_y_adjustment</property>
+                    <property name="digits">2</property>
                     <signal name="value-changed" handler="onValueChanged" swapped="no"/>
                   </object>
                 </child>
@@ -361,6 +371,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="adjustment">image_angle_adjustment</property>
+                    <property name="digits">2</property>
                     <signal name="value-changed" handler="onValueChanged" swapped="no"/>
                   </object>
                 </child>
@@ -445,6 +456,49 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="adjustment">image_samples_adjustment</property>
+                    <signal name="value-changed" handler="onValueChanged" swapped="no"/>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkListBoxRow">
+                <property name="width_request">100</property>
+                <property name="height_request">5</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkListBoxRow">
+                <property name="width_request">100</property>
+                <property name="height_request">35</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">Filter Radius Noise</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkListBoxRow">
+                <property name="width_request">100</property>
+                <property name="height_request">55</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <child>
+                  <object class="GtkSpinButton" id="filter_radius_noise">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="adjustment">radius_noise_adjustment</property>
+                    <property name="digits">2</property>
                     <signal name="value-changed" handler="onValueChanged" swapped="no"/>
                   </object>
                 </child>

@@ -29,6 +29,7 @@ class Gui:
         self.image_angle = self.builder.get_object("image_angle")
         self.filter_samples = self.builder.get_object("filter_samples")
         self.image_samples = self.builder.get_object("image_samples")
+        self.filter_radius_noise = self.builder.get_object("filter_radius_noise")
 
         self.window = self.builder.get_object("window")
         self.window.show_all()
@@ -60,6 +61,7 @@ class Gui:
         image_angle = np.deg2rad(self.image_angle.get_value())
         filter_samples = self.filter_samples.get_value()
         image_samples = int(self.image_samples.get_value())
+        filter_radius_noise = self.filter_radius_noise.get_value()
 
         self._draw_artifact_line(line_x,
                                  line_y,
@@ -68,6 +70,7 @@ class Gui:
                                  filter_radius,
                                  filter_noise,
                                  filter_samples,
+                                 filter_radius_noise,
                                  image_angle,
                                  image_samples,
                                  result=self.image_data)
