@@ -1,0 +1,95 @@
+{
+    "base": {
+        "nTrials": 40,
+        "pThreshold": 0.82,
+        "beta": 3.5,
+        "delta": 0.01,
+        "gamma": 0.5,
+        "grain": 0.1,
+        "startValSd": 0.4,
+        "stopInterval": 0.2,
+        "velocity": 0.0
+    },
+    "conditions": [
+        {
+            "label": "angle1",
+            "startVal": 1.0,
+            "artifact_size": 8,
+            "line_angle": 1,
+            "filter_noise": 0,
+            "filter_radius": 100.0,
+            "filter_samples": 100.0,
+            "image_samples": 1
+        },
+        {
+            "label": "angle1 noise20",
+            "startVal": 0.95,
+            "artifact_size": 8,
+            "line_angle": 1,
+            "filter_noise": 20,
+            "filter_radius": 100.0,
+            "filter_samples": 100.0,
+            "image_samples": 1
+        },
+        {
+            "label": "angle1 imagesamples2",
+            "startVal": 0.8,
+            "artifact_size": 8,
+            "line_angle": 1,
+            "filter_noise": 0,
+            "filter_radius": 100.0,
+            "filter_samples": 100.0,
+            "image_samples": 2
+        },
+        {
+            "label": "angle1 noise20 imagesamples2",
+            "startVal": 0.5,
+            "artifact_size": 8,
+            "line_angle": 1,
+            "filter_noise": 20,
+            "filter_radius": 100.0,
+            "filter_samples": 100.0,
+            "image_samples": 2
+        },
+        {
+            "label": "angle23",
+            "startVal": 0.6,
+            "artifact_size": 8,
+            "line_angle": 23,
+            "filter_noise": 0,
+            "filter_radius": 100.0,
+            "filter_samples": 100.0,
+            "image_samples": 1
+        },
+        {
+            "label": "angle23 noise20",
+            "startVal": 0.4,
+            "artifact_size": 8,
+            "line_angle": 23,
+            "filter_noise": 20,
+            "filter_radius": 100.0,
+            "filter_samples": 100.0,
+            "image_samples": 1
+        },
+        {
+            "label": "angle23 imagesamples2",
+            "startVal": 0.45,
+            "artifact_size": 8,
+            "line_angle": 23,
+            "filter_noise": 0,
+            "filter_radius": 100.0,
+            "filter_samples": 100.0,
+            "image_samples": 2
+        },
+        {
+            "label": "angle23 noise20 imagesamples2",
+            "startVal": 0.35,
+            "artifact_size": 8,
+            "line_angle": 23,
+            "filter_noise": 20,
+            "filter_radius": 100.0,
+            "filter_samples": 100.0,
+            "image_samples": 2
+        }
+    ]
+}

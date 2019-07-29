@@ -25,6 +25,25 @@ def init_opencl(sharing=True):
     command_queue = cl.CommandQueue(context)
 
 
+class Clear:
+    def __init__(self):
+        init_opencl(True)
+
+        opencl_file = os.path.join(os.path.dirname(__file__), 'clear.cl')
+
+        with open(opencl_file, 'r') as f:
+            source = f.read()
+
+        self._program = cl.Program(
+            context,
+            source).build(options=['-I', f'"{os.path.dirname(opencl_file)}"'])
+
+    def __call__(self, image):
+        cl.enqueue_acquire_gl_objects(command_queue, [image])
+        self._program.clear(command_queue, image.shape, None, image)
+        cl.enqueue_release_gl_objects(command_queue, [image])
+
+
 class Base:
     def __init__(self, image_width, image_height, opencl_file, gl_image=None):
         enable_gl_sharing = gl_image is not None
@@ -49,6 +68,10 @@ class Base:
                                               0,
                                               gl_image,
                                               dims=2)
+
+    @property
+    def cl_image(self):
+        return self._result_image
 
 
 class Line(Base):

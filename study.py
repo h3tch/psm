@@ -4,167 +4,18 @@ gi.require_version("Gdk", "3.0")
 from gi.repository import Gtk, Gdk, GLib, GObject
 import time
 import numpy as np
-
+import json
 import glutil
 import questutil
 import psm.filter
-
-base_condition = {
-    'pThreshold': 0.63,
-    'beta': 3.5,
-    'delta': 0.01,
-    'gamma': 0.5,
-    'grain': 0.1
-}
-
-conditions = [
-    {
-        'label': 'angle1',
-        'startVal': 0.7,
-        'startValSd': 0.2,
-        'artifact_size': 8,
-        'line_angle': np.deg2rad(1),
-        'velocity': 0.0,
-        'filter_noise': 0,
-        'filter_radius': 100.0,
-        'filter_samples': 100.0,
-        'image_samples': 1
-    },
-    {
-        'label': 'angle1 noise20',
-        'startVal': 0.7,
-        'startValSd': 0.2,
-        'artifact_size': 8,
-        'line_angle': np.deg2rad(1),
-        'velocity': 0.0,
-        'filter_noise': 20,
-        'filter_radius': 100.0,
-        'filter_samples': 100.0,
-        'image_samples': 1
-    },
-    {
-        'label': 'angle1 imagesamples2',
-        'startVal': 0.7,
-        'startValSd': 0.2,
-        'artifact_size': 8,
-        'line_angle': np.deg2rad(1),
-        'velocity': 0.0,
-        'filter_noise': 0,
-        'filter_radius': 100.0,
-        'filter_samples': 100.0,
-        'image_samples': 2
-    },
-    {
-        'label': 'angle1 noise20 imagesamples2',
-        'startVal': 0.7,
-        'startValSd': 0.2,
-        'artifact_size': 8,
-        'line_angle': np.deg2rad(1),
-        'velocity': 0.0,
-        'filter_noise': 20,
-        'filter_radius': 100.0,
-        'filter_samples': 100.0,
-        'image_samples': 2
-    },
-    {
-        'label': 'angle23',
-        'startVal': 0.7,
-        'startValSd': 0.2,
-        'artifact_size': 8,
-        'line_angle': np.deg2rad(23),
-        'velocity': 0.0,
-        'filter_noise': 0,
-        'filter_radius': 100.0,
-        'filter_samples': 100.0,
-        'image_samples': 1
-    },
-    {
-        'label': 'angle23 noise20',
-        'startVal': 0.7,
-        'startValSd': 0.2,
-        'artifact_size': 8,
-        'line_angle': np.deg2rad(23),
-        'velocity': 0.0,
-        'filter_noise': 20,
-        'filter_radius': 100.0,
-        'filter_samples': 100.0,
-        'image_samples': 1
-    },
-    {
-        'label': 'angle23 imagesamples2',
-        'startVal': 0.7,
-        'startValSd': 0.2,
-        'artifact_size': 8,
-        'line_angle': np.deg2rad(23),
-        'velocity': 0.0,
-        'filter_noise': 0,
-        'filter_radius': 100.0,
-        'filter_samples': 100.0,
-        'image_samples': 2
-    },
-    {
-        'label': 'angle23 noise20 imagesamples2',
-        'startVal': 0.7,
-        'startValSd': 0.2,
-        'artifact_size': 8,
-        'line_angle': np.deg2rad(23),
-        'velocity': 0.0,
-        'filter_noise': 20,
-        'filter_radius': 100.0,
-        'filter_samples': 100.0,
-        'image_samples': 2
-    },
-    # {
-        #     'label': 'angle0 noise0 speed300',
-        #     'startVal': 0.7,
-        #     'startValSd': 0.2,
-        #     'artifact_size': 8,
-        #     'line_angle': np.deg2rad(0),
-        #     'velocity': 300.0,
-        #     'filter_noise': 0,
-        #     'filter_radius': 200.0
-        # }, {
-        #     'label': 'angle0 noise10 speed300',
-        #     'startVal': 0.7,
-        #     'startValSd': 0.2,
-        #     'artifact_size': 8,
-        #     'line_angle': np.deg2rad(0),
-        #     'velocity': 300.0,
-        #     'filter_noise': 10,
-        #     'filter_radius': 200.0
-        # }, {
-    #     'label': 'angle0 noise0 speed200',
-    #     'startVal': 0.7,
-    #     'startValSd': 0.2,
-    #     'artifact_size': 8,
-    #     'line_angle': np.deg2rad(0),
-    #     'velocity': 200.0,
-    #     'filter_noise': 0,
-    #     'filter_radius': 200.0
-    # },
-    # {
-    #     'label': 'angle0 noise10 speed200',
-    #     'startVal': 0.7,
-    #     'startValSd': 0.2,
-    #     'artifact_size': 8,
-    #     'line_angle': np.deg2rad(0),
-    #     'velocity': 200.0,
-    #     'filter_noise': 10,
-    #     'filter_radius': 200.0
-    # }
-]
-
-conditions = [{**base_condition, **c} for c in conditions]
+import os
 
 
 class Study:
-    def __init__(self, user, conditions, n_trials=20):
-
-        self.quests = questutil.Quests(user=user,
-                                       conditions=conditions,
-                                       n_trials=n_trials,
-                                       random_trial_probability=0.3,
-                                       repeat_incorrect_random_reference_trials=True)
+    def __init__(self, user, conditions=None, n_trials=20):
+        if conditions is None:
+            conditions = self._load_config()
+        self.quests = questutil.MultiQuest(user=user, conditions=conditions)
         self.stimuli = None
         self.drawer = None
         self._random_reference_trial = False
@@ -206,13 +57,14 @@ class Study:
 
     def setup_next_quest(self):
         try:
-            intensity, condition, self._random_reference_trial = self.quests.next()
+            intensity, condition, rnd, quest_changed = self.quests.next()
+            self._random_reference_trial = rnd
         except StopIteration:
             self.window.close()
             return
 
-        remainting = self.quests.estimated_minutes_remaining
-        self.window.set_title(f'~{remainting}min remaining')
+        percent = int(self.quests.percent_done)
+        self.window.set_title(f'{percent}% done')
 
         artifact_size = condition['artifact_size']
         line_angle = condition['line_angle']
@@ -222,9 +74,16 @@ class Study:
         velocity = condition['velocity']
         image_samples = condition['image_samples']
 
+        if quest_changed:
+            long_pause = ((self.quests.reversal_counter + 1) % 5) == 0
+            pause = 10.0 if long_pause else 3.0
+        else:
+            pause = 0.0
+
         self.stimuli.settings(artifact_size, line_angle, filter_radius,
                               filter_noise, filter_samples, velocity,
-                              image_samples)
+                              image_samples, randomize=quest_changed,
+                              pause=pause)
 
     def on_create_context(self, gl_area):
         ctx = gl_area.get_window().create_gl_context()
@@ -237,7 +96,7 @@ class Study:
     def on_realize(self, gl_area):
         gl_area.get_context().make_current()
         self.stimuli = questutil.StimuliGenerator(
-            int(gl_area.get_allocated_height()))
+            int(gl_area.get_allocated_height()), 3.0)
         self.drawer = glutil.DrawTexture()
         self.setup_next_quest()
 
@@ -257,6 +116,17 @@ class Study:
             self.drawer.draw(0.0, 0.0, 1.0, 1.0, self.stimuli.artifact_image)
         gl_area.queue_draw()
 
+    def _load_config(self):
+        with open(os.path.join(os.path.dirname(__file__), 'config.json'), 'rt') as fp:
+            config = json.load(fp)
+            base_condition = config['base']
+            conditions = config['conditions']
+            conditions = [{**base_condition, **c} for c in conditions]
+            for c in conditions:
+                c['label'] = f'angle{c["line_angle"]}-noise{c["filter_noise"]}-imgsamples{c["image_samples"]}'
+                c['line_angle'] = np.deg2rad(c['line_angle'])
+        return conditions
 
-Study(user='user', conditions=conditions)
+
+Study(user=input('user:'))
 Gtk.main()
