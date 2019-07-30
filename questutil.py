@@ -9,7 +9,6 @@ import glutil
 import itertools
 import pickle
 import contextlib
-from OpenGL.GL import glClear, glFlush, GL_COLOR_BUFFER_BIT
 
 
 class Quests:

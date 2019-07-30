@@ -1,3 +1,6 @@
+import os
+if 'WAYLAND_DISPLAY' in os.environ:
+    os.environ['GDK_BACKEND'] = 'x11'
 import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
@@ -8,7 +11,6 @@ import json
 import glutil
 import questutil
 import psm.filter
-import os
 
 
 class Study:
@@ -104,7 +106,7 @@ class Study:
 
     def on_create_context(self, gl_area):
         ctx = gl_area.get_window().create_gl_context()
-        ctx.set_required_version(4, 6)
+        ctx.set_required_version(4, 4)
         ctx.set_debug_enabled(True)
         ctx.realize()
         ctx.make_current()
