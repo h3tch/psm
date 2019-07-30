@@ -8,6 +8,7 @@ import time
 import glutil
 import itertools
 import pickle
+import contextlib
 from OpenGL.GL import glClear, glFlush, GL_COLOR_BUFFER_BIT
 
 
@@ -206,6 +207,7 @@ class MultiQuest:
         self._init_output_folder(user)
         self._load_backup()
 
+        self._active_quest_history = []
         self._active_quest_index = self._random_quest_index()
         self._active_quest_index_needs_update = False
         self._is_reference = self._random_reference_decision
@@ -289,7 +291,7 @@ class MultiQuest:
 
     @property
     def _random_reference_decision(self):
-        if self._random_reference_trials is None:#
+        if self._random_reference_trials is None or len(self._random_reference_trials) == 0:
             n = 20
             s = int(n * (1.0 - self._random_reference_probability))
             t = int(n * self._random_reference_probability)
@@ -340,6 +342,9 @@ class MultiQuest:
         self._save_backup()
 
     def _next_quest(self):
+        self._active_quest_history.append(self._active_quest_index)
+        while len(self._active_quest_history) > 3:
+            del self._active_quest_history[0]
         self._active_quest_index = self._next_active_quest_index()
 
     def _next_active_quest_index(self):
@@ -347,8 +352,10 @@ class MultiQuest:
         if len(indices) == 0:
             self._active_quest_index = None
             return
-        if len(indices) > 1 and self._active_quest_index is not None:
-            indices.remove(self._active_quest_index)
+        if len(indices) > 1:
+            with contextlib.suppress(ValueError, AttributeError):
+                for i in self._active_quest_history:
+                    indices.remove(i)
         return np.random.choice(indices)
 
     def _init_output_folder(self, user=None):
@@ -551,7 +558,7 @@ class StimuliGenerator:
             self._draw_artifact_line(self.current_line_x, self.current_line_y,
                                      self.line_angle, self.artifact_size,
                                      self.filter_radius, self.filter_noise,
-                                     self.filter_samples, 0.0,
+                                     self.filter_samples, 0.1,
                                      self.image_angle, self.image_samples)
 
         self.current_line_x += self.line_vx * elapsed_time

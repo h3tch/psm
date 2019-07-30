@@ -74,8 +74,9 @@ class Study:
             self.window.close()
             return
 
-        percent = int(self.quests.percent_done)
-        self.window.set_title(f'{percent}% done')
+        if quest_changed:
+            percent = int(self.quests.percent_done)
+            self.window.set_title(f'{percent}% done')
 
         artifact_size = condition['artifact_size']
         line_angle = condition['line_angle']
