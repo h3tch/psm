@@ -93,7 +93,7 @@ class Quad2D:
 
 class DrawTexture:
     vs = """
-    #version 460 core
+    #version 440 core
     layout(location = 0) uniform vec2 shift;
     layout(location = 1) uniform vec2 scale;
 
@@ -117,7 +117,7 @@ class DrawTexture:
     """
 
     fs = """
-    #version 460 core
+    #version 440 core
     layout(binding=0) uniform sampler2D tex;
 
     in vec2 uv;
