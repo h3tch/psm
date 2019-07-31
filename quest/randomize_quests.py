@@ -1,5 +1,6 @@
 import contextlib
 import copy
+import enum
 import glob
 import itertools
 import numpy as np
@@ -7,6 +8,13 @@ import os
 import pickle
 import psychopy.data
 import time
+
+
+class Response(enum.Enum):
+    NONE = 0
+    SAW_ARTIFACT = 1
+    SAW_LINE = 2
+    CANNOT_DECIDE = 3
 
 
 class MultiQuest:
@@ -24,58 +32,49 @@ class MultiQuest:
         self._random_reference_trials = None
         self._random_reference_probability = random_reference_probability
 
-        self._init_output_folder(user)
-
         self._active_quest_history = []
         self._active_quest_index = self._random_quest_index()
-        self._active_quest_index_needs_update = False
         self._is_reference = self._random_reference_decision
         self._reference_quest = copy.deepcopy(self._active_quest)
         self._trial_counter = 0
         self._quest_changes = 0
+        self._quest_changed = False
         self._start_time = time.time()
+        self._previous_response = Response.NONE
 
+        self._init_output_folder(user)
         self._load_backup()
 
     def saw_artifact_response(self, selection, x, y):
+        self._previous_response = Response.SAW_ARTIFACT
         self._add_response_info_to_current_quest(True, selection, x, y)
+        self._save_backup()
 
     def saw_line_response(self):
-        self.cannot_decide_response()
-        self._active_quest_index_needs_update = True
-
-    def cannot_decide_response(self):
-        self._add_response_info_to_current_quest(False,
+        self._previous_response = Response.SAW_LINE
+        self._add_response_info_to_current_quest(saw_artifact=False,
                                                  selection='none',
                                                  x='',
                                                  y='')
+        self._save_backup()
+
+    def cannot_decide_response(self):
+        self._previous_response = Response.CANNOT_DECIDE
+        self._add_response_info_to_current_quest(saw_artifact=False,
+                                                 selection='none',
+                                                 x='',
+                                                 y='')
+        self._save_backup()
 
     def undo(self):
         self._load_backup(-1)
 
     def next(self):
-        if self._active_quest_index_needs_update:
-            self._active_quest_index_needs_update = False
-            self._is_reference = self._random_reference_decision
-            quest_changed = True
-            self._quest_changes += 1
-            self._next_quest()
-            if self._is_reference:
-                self._reference_quest = copy.deepcopy(self._active_quest)
-            else:
-                self._reference_quest = None
-        else:
-            quest_changed = False
-
-        if not self._has_active_quest:
+        if not self._next_trial():
             raise StopIteration
-
-        if self._is_reference:
-            intensity = self._reference_quest.next()
-        else:
-            intensity = self._active_quest.next()
+        intensity = self._quest.next()
         condition = self._active_condition
-        return intensity, condition, self._is_reference, quest_changed
+        return intensity, condition
 
     def save(self):
         self._save_csv(os.path.join(self._data_folder, 'result.csv'))
@@ -125,29 +124,19 @@ class MultiQuest:
             self._random_reference_trials = np.random.permutation(a).tolist()
         return self._random_reference_trials.pop() == 1
 
-    def _add_response_info_to_current_quest(self, saw_artifact, selection, x,
-                                            y):
-
+    def _add_response_info_to_current_quest(self, saw_artifact, selection, x, y):
+        quest = self._quest
+        intensity = quest.intensities[-1]
+        change = 'increase' if saw_artifact else 'decrease'
         if self._is_reference:
             correct = False if saw_artifact else True
-            quest = self._reference_quest
         else:
             correct = True if saw_artifact else False
-            quest = self._active_quest
-
-        change = 'increase' if saw_artifact else 'decrease'
-
-        intensity = quest.intensities[-1]
-
-        globalTrialId = self._trial_counter
-        self._trial_counter += 1
-        questTrialId = len(quest.otherData['globalTrialId']
-                           ) if 'globalTrialId' in quest.otherData else 0
 
         active = self._active_quest
         active.addOtherData('user', self._user)
-        active.addOtherData('globalTrialId', globalTrialId)
-        active.addOtherData('questTrialId', questTrialId)
+        active.addOtherData('globalTrialId', self.trial_count)
+        active.addOtherData('questTrialId', self.quest_trial_count)
         active.addOtherData('intensity', intensity)
         active.addOtherData('intensityChange', change)
         active.addOtherData('selection', selection)
@@ -158,15 +147,25 @@ class MultiQuest:
 
         if change == 'increase':
             quest.addResponse(0)
-            self._active_quest_index_needs_update = True
         elif change == 'decrease':
             quest.addResponse(1)
-            if quest.finished:
-                self._active_quest_index_needs_update = True
 
-        self._save_backup()
+    def _next_trial(self):
+        self._trial_counter += 1
+        if self._active_quest_index_needs_update:
+            self._is_reference = self._random_reference_decision
+            self._quest_changed = True
+            self._quest_changes += 1
+            self._next_quest_index()
+            if self._is_reference:
+                self._reference_quest = copy.deepcopy(self._active_quest)
+            else:
+                self._reference_quest = None
+        else:
+            self._quest_changed = False
+        return self._has_active_quest
 
-    def _next_quest(self):
+    def _next_quest_index(self):
         self._active_quest_history.append(self._active_quest_index)
         while len(self._active_quest_history) > 3:
             del self._active_quest_history[0]
@@ -229,12 +228,35 @@ class MultiQuest:
             return dst
 
     @property
+    def is_reference(self):
+        return self._is_reference
+
+    @property
     def quest_changes(self):
         return self._quest_changes
 
     @property
+    def quest_changed(self):
+        return self._quest_changed
+
+    @property
+    def trial_count(self):
+        return self._trial_counter
+
+    @property
+    def quest_trial_count(self):
+        quest = self._quest
+        if 'globalTrialId' in quest.otherData:
+            return len(quest.otherData['globalTrialId'])
+        return 0
+
+    @property
     def _has_active_quest(self):
         return self._active_quest_index is not None
+
+    @property
+    def _quest(self):
+        return self._reference_quest if self._is_reference else self._active_quest
 
     @property
     def _active_quest(self):
@@ -247,6 +269,21 @@ class MultiQuest:
     @property
     def _active_condition(self):
         return self._conditions[self._active_quest_index]
+
+    @property
+    def _active_quest_index_needs_update(self):
+        if self.previous_response == Response.SAW_LINE:
+            return True
+        quest = self._quest
+        if quest.finished:
+            return True
+        if len(quest.data):
+            return quest.data[-1] == 0
+        return False
+
+    @property
+    def previous_response(self):
+        return self._previous_response
 
     @property
     def done_trials(self):

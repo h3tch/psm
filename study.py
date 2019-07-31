@@ -23,8 +23,6 @@ class Study:
         self.drawer = None
         self.undo_button = None
         self.window = None
-        self._is_random_reference_trial = False
-        self._quest_has_changed = False
 
         self._init_ui('study.glade')
 
@@ -81,23 +79,19 @@ class Study:
 
     def setup_next_quest(self):
         try:
-            intensity, condition = self._update_quests()
+            intensity, condition = self.quests.next()
             self._update_ui()
             self._update_stimuli(intensity, condition)
         except StopIteration:
             self.window.close()
 
-    def _update_quests(self):
-        intensity, condition, rnd, quest_changed = self.quests.next()
-        self._is_random_reference_trial = rnd
-        self._quest_has_changed = quest_changed
-        return intensity, condition
-
     def _update_ui(self):
-        if self._quest_has_changed:
+        if self.quests.quest_changed:
             percent = int(self.quests.percent_done)
             self.window.set_title(f'{percent}% done')
-        self.undo_button.set_sensitive(self._quest_has_changed)
+            self.undo_button.set_sensitive(True)
+        else:
+            self.undo_button.set_sensitive(False)
 
     def _update_stimuli(self, intensity, condition):
         pause = self._calculate_pause()
@@ -108,11 +102,11 @@ class Study:
                               condition['filter_samples'],
                               condition['velocity'],
                               condition['image_samples'],
-                              randomize=self._quest_has_changed,
+                              randomize=self.quests.quest_changed,
                               pause=pause)
 
     def _calculate_pause(self):
-        if self._quest_has_changed:
+        if self.quests.quest_changed:
             quest_changes = self.quests.quest_changes
             if (quest_changes % 30) == 0:
                 return 30.0
@@ -149,9 +143,10 @@ class Study:
         gl_area.queue_draw()
 
     def _render_stimuli(self):
-        self.stimuli.render(reference=self._is_random_reference_trial,
-                            artifact=not self._is_random_reference_trial)
-        if self._is_random_reference_trial:
+        is_random_reference_quest = self.quests.is_reference
+        self.stimuli.render(reference=is_random_reference_quest,
+                            artifact=not is_random_reference_quest)
+        if is_random_reference_quest:
             return self.stimuli.reference_image
         return self.stimuli.artifact_image
 
