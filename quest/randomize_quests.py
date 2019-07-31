@@ -6,7 +6,7 @@ import itertools
 import numpy as np
 import os
 import pickle
-import psychopy.data
+from psychopy.data import QuestHandler
 import time
 
 
@@ -25,9 +25,7 @@ class MultiQuest:
                  **kwargs):
         self._user = user
         self._conditions = conditions
-        self._quests = [
-            psychopy.data.QuestHandler(**condition) for condition in conditions
-        ]
+        self._quests = [QuestHandler(**condition) for condition in conditions]
         self._quest_labels = [condition['label'] for condition in conditions]
         self._random_reference_trials = None
         self._random_reference_probability = random_reference_probability
@@ -45,22 +43,28 @@ class MultiQuest:
         self._init_output_folder(user)
         self._load_backup()
 
-    def saw_artifact_response(self, selection, x, y):
+    def saw_artifact_response(self, duration, selection, x, y):
         self._previous_response = Response.SAW_ARTIFACT
-        self._add_response_info_to_current_quest(True, selection, x, y)
+        self._add_response_info_to_current_quest(duration=duration,
+                                                 saw_artifact=True,
+                                                 selection=selection,
+                                                 x=x,
+                                                 y=y)
         self._save_backup()
 
-    def saw_line_response(self):
+    def saw_line_response(self, duration):
         self._previous_response = Response.SAW_LINE
-        self._add_response_info_to_current_quest(saw_artifact=False,
+        self._add_response_info_to_current_quest(duration=duration,
+                                                 saw_artifact=False,
                                                  selection='none',
                                                  x='',
                                                  y='')
         self._save_backup()
 
-    def cannot_decide_response(self):
+    def cannot_decide_response(self, duration):
         self._previous_response = Response.CANNOT_DECIDE
-        self._add_response_info_to_current_quest(saw_artifact=False,
+        self._add_response_info_to_current_quest(duration=duration,
+                                                 saw_artifact=False,
                                                  selection='none',
                                                  x='',
                                                  y='')
@@ -124,7 +128,7 @@ class MultiQuest:
             self._random_reference_trials = np.random.permutation(a).tolist()
         return self._random_reference_trials.pop() == 1
 
-    def _add_response_info_to_current_quest(self, saw_artifact, selection, x, y):
+    def _add_response_info_to_current_quest(self, duration, saw_artifact, selection, x, y):
         quest = self._quest
         intensity = quest.intensities[-1]
         change = 'increase' if saw_artifact else 'decrease'
@@ -144,6 +148,7 @@ class MultiQuest:
         active.addOtherData('x', x)
         active.addOtherData('y', y)
         active.addOtherData('is_reference', self._is_reference)
+        active.addOtherData('duration', duration)
 
         if change == 'increase':
             quest.addResponse(0)

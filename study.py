@@ -10,6 +10,7 @@ import json
 import glutil
 import quest
 import stimuli
+import time
 
 
 class Study:
@@ -23,6 +24,7 @@ class Study:
         self.drawer = None
         self.undo_button = None
         self.window = None
+        self._trial_start_time = None
 
         self._init_ui('study.glade')
 
@@ -56,19 +58,20 @@ class Study:
     def on_different(self, widget, event, *args):
         if not self.stimuli.is_showing:
             return
-        self.quests.saw_artifact_response('image', event.x, event.y)
+        self.quests.saw_artifact_response(self.trial_duration, 'image',
+                                          event.x, event.y)
         self.setup_next_quest()
 
     def on_cannot_decide(self, widget):
         if not self.stimuli.is_showing:
             return
-        self.quests.cannot_decide_response()
+        self.quests.cannot_decide_response(self.trial_duration)
         self.setup_next_quest()
 
     def on_is_line(self, widget):
         if not self.stimuli.is_showing:
             return
-        self.quests.saw_line_response()
+        self.quests.saw_line_response(self.trial_duration)
         self.setup_next_quest()
 
     def on_undo(self, widget):
@@ -95,6 +98,7 @@ class Study:
 
     def _update_stimuli(self, intensity, condition):
         pause = self._calculate_pause()
+        self._trial_start_time = time.time() + pause
         self.stimuli.settings(condition['artifact_size'],
                               condition['line_angle'],
                               condition['filter_radius'] * intensity,
@@ -161,6 +165,10 @@ class Study:
                 c['label'] = f'angle{c["line_angle"]}-noise{c["filter_noise"]}-imgsamples{c["image_samples"]}'
                 c['line_angle'] = np.deg2rad(c['line_angle'])
         return conditions
+
+    @property
+    def trial_duration(self):
+        return time.time() - self._trial_start_time
 
 
 if __name__ == "__main__":
