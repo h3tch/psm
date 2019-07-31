@@ -40,7 +40,7 @@ class Clear:
 
     def __call__(self, image):
         cl.enqueue_acquire_gl_objects(command_queue, [image])
-        self._program.clear(command_queue, image.shape, None, image)
+        self._program.clear(command_queue, image.shape, (1, 1), image)
         cl.enqueue_release_gl_objects(command_queue, [image])
 
 
@@ -94,7 +94,7 @@ class Line(Base):
 
         if hasattr(self._result_image, 'gl_object'):
             cl.enqueue_acquire_gl_objects(command_queue, [self._result_image])
-        self._program.filtered_line(command_queue, shape, None,
+        self._program.filtered_line(command_queue, shape, (1, 1),
                                     np.uint32(shape[1]), np.uint32(shape[0]),
                                     np.float32(line_x), np.float32(line_y),
                                     np.float32(line_angle),
@@ -139,7 +139,7 @@ class ArtifactLine(Base):
 
         if hasattr(self._result_image, 'gl_object'):
             cl.enqueue_acquire_gl_objects(command_queue, [self._result_image])
-        self._program.filtered_line_artifact(command_queue, shape, None,
+        self._program.filtered_line_artifact(command_queue, shape, (1, 1),
                                              np.uint32(shape[1]),
                                              np.uint32(shape[0]),
                                              np.uint32(artifact_size),

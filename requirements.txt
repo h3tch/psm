@@ -1,4 +1,4 @@
 numpy
-PyOpenCL
+pycairo
 PyGObject
 psychopy

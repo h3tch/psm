@@ -38,5 +38,10 @@
     },
     "python.pythonPath": "/home/mh/.pyenv/versions/v3.7.4/bin/python",
     "python.formatting.provider": "yapf",
-    "python.formatting.yapfArgs": ["--style", "{based_on_style: pep8}"]
+    "python.formatting.yapfArgs": [
+        "--style",
+        "{based_on_style: pep8}"
+    ],
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true
 }

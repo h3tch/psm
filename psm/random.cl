@@ -1,3 +1,5 @@
+#include "define.cl"
+
 float randf(const float seedx, const float seedy)
 {
     float floor_part;
