@@ -46,7 +46,14 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
-              <placeholder/>
+              <object class="GtkButton" id="undo_button">
+                <property name="label" translatable="yes">Undo</property>
+                <property name="name">undo_button</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="clicked" handler="onUndo" swapped="no"/>
+              </object>
             </child>
           </object>
           <packing>

@@ -205,7 +205,6 @@ class MultiQuest:
         self._random_reference_probability = random_reference_probability
 
         self._init_output_folder(user)
-        self._load_backup()
 
         self._active_quest_history = []
         self._active_quest_index = self._random_quest_index()
@@ -213,8 +212,10 @@ class MultiQuest:
         self._is_reference = self._random_reference_decision
         self._reference_quest = copy.deepcopy(self._active_quest)
         self._trial_counter = 0
-        self._reversal_counter = 0
+        self._quest_changes = 0
         self._start_time = time.time()
+
+        self._load_backup()
 
     def saw_artifact_response(self, selection, x, y):
         self._add_response_info_to_current_quest(True, selection, x, y)
@@ -229,12 +230,15 @@ class MultiQuest:
                                                  x='',
                                                  y='')
 
+    def undo(self):
+        self._load_backup(-1)
+
     def next(self):
         if self._active_quest_index_needs_update:
             self._active_quest_index_needs_update = False
             self._is_reference = self._random_reference_decision
             quest_changed = True
-            self._reversal_counter += 1
+            self._quest_changes += 1
             self._next_quest()
             if self._is_reference:
                 self._reference_quest = copy.deepcopy(self._active_quest)
@@ -257,6 +261,7 @@ class MultiQuest:
         self._save_csv(os.path.join(self._data_folder, 'result.csv'))
 
     def _save_csv(self, filename):
+        self._backup_file(filename)
         with open(filename, 'w') as file:
             results = self._quest_results()
             keys = sorted(set(itertools.chain.from_iterable(results)))
@@ -368,33 +373,44 @@ class MultiQuest:
         self._data_folder = os.path.join(self._data_folder, user)
         os.makedirs(self._data_folder, exist_ok=True)
 
-    def _load_backup(self):
+    def _load_backup(self, undo=0):
         n_backups = len(glob.glob(os.path.join(self._data_folder, '*.pickle')))
         if n_backups == 0:
-            return
-        filename = os.path.join(self._data_folder, f'{n_backups}.pickle')
+            return False
+
+        backup = max(1, n_backups - abs(undo))
+
+        for i in range(backup+1, n_backups+1):
+            src = os.path.join(self._data_folder, f'{i}.pickle')
+            self._backup_file(src)
+
+        filename = os.path.join(self._data_folder, f'{backup}.pickle')
         with open(filename, 'rb') as file_handle:
             backup = pickle.load(file_handle)
-        self._quest_labels = backup['labels']
-        self._quests = backup['quests']
-        self._conditions = backup['conditions']
-        self._trial_counter = backup['trial_count']
+
+        for key in self.__dict__.keys():
+            setattr(self, key, getattr(backup, key))
+
+        return True
 
     def _save_backup(self):
-        backup = {
-            'labels': self._quest_labels,
-            'quests': self._quests,
-            'conditions': self._conditions,
-            'trial_count': self._trial_counter
-        }
         n_backups = len(glob.glob(os.path.join(self._data_folder, '*.pickle')))
         filename = os.path.join(self._data_folder, f'{n_backups + 1}.pickle')
+        self._backup_file(filename)
         with open(filename, 'wb') as file_handle:
-            pickle.dump(backup, file_handle, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(self, file_handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    def _backup_file(self, filename):
+        if os.path.exists(filename):
+            dst = f'{filename}.backup'
+            while os.path.exists(dst):
+                dst = f'{dst}.newer'
+            os.rename(filename, dst)
+            return dst
 
     @property
-    def reversal_counter(self):
-        return self._trial_counter
+    def quest_changes(self):
+        return self._quest_changes
 
     @property
     def _has_active_quest(self):

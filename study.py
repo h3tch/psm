@@ -29,7 +29,8 @@ class Study:
             'onUnrealize': self.on_unrealize,
             'onRender': self.on_render,
             'onCannotDecide': self.on_cannot_decide,
-            'onIsLine': self.on_is_line
+            'onIsLine': self.on_is_line,
+            'onUndo': self.on_undo
         }
 
         self.builder = Gtk.Builder()
@@ -37,6 +38,8 @@ class Study:
         self.builder.connect_signals(handlers)
         event_box = self.builder.get_object('event_box')
         event_box.connect('button-press-event', self.on_different)
+        self.undo_button = self.builder.get_object('undo_button')
+        self.undo_button.set_sensitive(False)
         self.window = self.builder.get_object("window")
         self.window.show_all()
 
@@ -66,6 +69,12 @@ class Study:
         self.quests.saw_line_response()
         self.setup_next_quest()
 
+    def on_undo(self, widget):
+        if not self.stimuli.is_showing:
+            return
+        self.quests.undo()
+        self.setup_next_quest()
+
     def setup_next_quest(self):
         try:
             intensity, condition, rnd, quest_changed = self.quests.next()
@@ -77,6 +86,7 @@ class Study:
         if quest_changed:
             percent = int(self.quests.percent_done)
             self.window.set_title(f'{percent}% done')
+        self.undo_button.set_sensitive(quest_changed)
 
         artifact_size = condition['artifact_size']
         line_angle = condition['line_angle']
@@ -87,10 +97,10 @@ class Study:
         image_samples = condition['image_samples']
 
         if quest_changed:
-            self.quest_changes += 1
-            if (self.quest_changes % 30) == 0:  # very long pause
+            quest_changes = self.quests.quest_changes
+            if (quest_changes % 30) == 0:  # very long pause
                 pause = 30.0
-            elif (self.quest_changes % 5) == 0:  # long pause
+            elif (quest_changes % 5) == 0:  # long pause
                 pause = 10.0
             else:  # short pause
                 pause = 3.0
