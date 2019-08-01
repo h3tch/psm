@@ -14,17 +14,16 @@ import time
 
 
 class Study:
-    def __init__(self, user, conditions):
-        self.quests = quest.MultiQuest(user=user,
-                                       conditions=conditions,
-                                       random_reference_probability=0.2)
+    def __init__(self, user, conditions, settings):
+        self.quests = quest.MultiQuest(user, conditions, **settings)
         self.stimuli = None
         self.drawer = None
         self.undo_button = None
         self.window = None
         self._trial_start_time = None
+        self._window_title = ''
 
-        self._init_ui('study.glade')
+        self._init_ui('study-small.glade')
 
     def _init_ui(self, glade_filename):
         handlers = {
@@ -89,7 +88,7 @@ class Study:
     def _update_ui(self):
         if self.quests.quest_changed:
             percent = int(self.quests.percent_done)
-            self.window.set_title(f'{percent}% done')
+            self._window_title = f'{percent}% done'
             self.undo_button.set_sensitive(True)
         else:
             self.undo_button.set_sensitive(False)
@@ -140,7 +139,7 @@ class Study:
 
     def on_render(self, gl_area, gl_context):
         stimuli = self._render_stimuli()
-        self.window.set_title(f'{self.stimuli.fps}% FPS')
+        self.window.set_title(f'{self._window_title} ({self.stimuli.fps} FPS)')
         self.drawer.bind()
         self.drawer.draw(0.0, 0.0, 1.0, 1.0, stimuli)
         gl_area.queue_render()
@@ -161,7 +160,8 @@ class Study:
 def load_config(filename):
     with open(os.path.join(os.path.dirname(__file__), filename), 'rt') as fp:
         config = json.load(fp)
-        base_condition = config['base']
+        settings = config['settings']
+        base_condition = config['base-condition']
         conditions = config['conditions']
         conditions = [{**base_condition, **c} for c in conditions]
         for c in conditions:
@@ -171,10 +171,10 @@ def load_config(filename):
                 f'imgsamples{c["image_samples"]}'
             ])
             c['line_angle'] = np.deg2rad(c['line_angle'])
-    return conditions
+    return settings, conditions
 
 
 if __name__ == "__main__":
-    conditions = load_config('config.json')
-    Study(user=input('user:'), conditions=conditions)
+    settings, conditions = load_config('test.json')
+    Study(user='', conditions=conditions, settings=settings)
     Gtk.main()

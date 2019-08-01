@@ -35,12 +35,28 @@ float filter_line(const float line_x,
         return r1 < 0.0f ? 0.0f : 1.0f;
     }
 
+    // float area = 0.0f;
+    // while (c0 <= filter_radius) {
+    //     const float c1 = c0 + artifact_size;
+    //     const float r1 =
+    //         rasterize_line_y(artifact_size, k, d, c0 + pixel_center_shift)
+    //         - filter_y;
+    //     float a = estimate_circle_infinite_bar_area(
+    //         c0, c1, fabs(r1), filter_radius, filter_radius2);
+    //     if (r1 > 0)
+    //         a = estimate_circle_interval_area(
+    //                 c0, c1, filter_radius, filter_radius2)
+    //             - a;
+    //     area += a;
+    //     c0 = c1;
+    // }
+
     float area = 0.0f;
     while (c0 <= filter_radius) {
-        const float c1 = c0 + artifact_size;
-        const float r1 =
-            rasterize_line_y(artifact_size, k, d, c0 + pixel_center_shift)
-            - filter_y;
+        float r1 =
+            rasterize_line_y(artifact_size, k, d, c0 + pixel_center_shift);
+        const float c1 = next_line_step_x(artifact_size, k, d, r1) - filter_x;
+        r1 -= filter_y;
         float a = estimate_circle_infinite_bar_area(
             c0, c1, fabs(r1), filter_radius, filter_radius2);
         if (r1 > 0)
@@ -76,7 +92,9 @@ __kernel void filtered_line_artifact(const unsigned int width,
 
     float filter_x = col;
     float filter_y = row;
-    const float radius = filter_radius * (filter_radius_noise * randf(line_x + row, line_y + col) + (1.0f - filter_radius_noise / 2));
+    float radius = filter_radius;
+    if (filter_radius_noise > 0.0f)
+        radius *= (filter_radius_noise * randf(line_x + row, line_y + col) + (1.0f - filter_radius_noise / 2));
 
     rotate_point(cx, cy, image_angle, &filter_x, &filter_y);
 
@@ -87,7 +105,7 @@ __kernel void filtered_line_artifact(const unsigned int width,
                               filter_x,
                               filter_y,
                               radius);
-    bool in_penumbra = 0.0f < color && color < 1.0f;
+    const bool in_penumbra = 0.0f < color && color < 1.0f;
 
     for (unsigned int i = 1; i < image_samples; ++i) {
         const float rotation = (40.0f / i) * M_PI / 180.0f;
@@ -106,7 +124,7 @@ __kernel void filtered_line_artifact(const unsigned int width,
     }
     color /= (float)image_samples;
 
-    if (in_penumbra)
+    if (in_penumbra && filter_noise > 0.0f)
         color += filter_noise * poisson_noise(filter_x, filter_y, filter_samples * color);
 
     color = min(max(color, 0.0f), 1.0f);

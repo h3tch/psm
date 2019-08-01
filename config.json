@@ -1,5 +1,8 @@
 {
-    "base": {
+    "settings": {
+        "random_reference_probability": 0.2
+    },
+    "base-condition": {
         "nTrials": 40,
         "pThreshold": 0.82,
         "beta": 3.5,

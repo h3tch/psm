@@ -1,5 +1,8 @@
 {
-    "base": {
+    "settings": {
+        "random_reference_probability": 0.0
+    },
+    "base-condition": {
         "nTrials": 40,
         "pThreshold": 0.82,
         "beta": 3.5,
@@ -12,24 +15,13 @@
     },
     "conditions": [
         {
-            "label": "angle1-speed20",
-            "startVal": 0.6,
-            "artifact_size": 8,
-            "line_angle": 1,
+            "startVal": 0.4,
+            "artifact_size": 4,
+            "line_angle": 23,
             "filter_noise": 0,
-            "filter_radius": 60.0,
+            "filter_radius": 120.0,
             "image_samples": 1,
-            "velocity": 10.0
-        },
-        {
-            "label": "angle1-speed40",
-            "startVal": 0.6,
-            "artifact_size": 8,
-            "line_angle": 36,
-            "filter_noise": 0,
-            "filter_radius": 60.0,
-            "image_samples": 1,
-            "velocity": 10.0
+            "velocity": 40.0
         }
     ]
 }
