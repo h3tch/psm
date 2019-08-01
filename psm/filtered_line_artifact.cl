@@ -71,12 +71,14 @@ __kernel void filtered_line_artifact(const unsigned int width,
 {
     const float col = (float)get_global_id(0);
     const float row = (float)get_global_id(1);
+    const float cx = width * 0.5f;
+    const float cy = height * 0.5f;
 
     float filter_x = col;
     float filter_y = row;
     const float radius = filter_radius * (filter_radius_noise * randf(line_x + row, line_y + col) + (1.0f - filter_radius_noise / 2));
 
-    rotate_point(line_x, line_y, image_angle, &filter_x, &filter_y);
+    rotate_point(cx, cy, image_angle, &filter_x, &filter_y);
 
     float color = filter_line(line_x,
                               line_y,
@@ -93,7 +95,7 @@ __kernel void filtered_line_artifact(const unsigned int width,
         filter_x = col;
         filter_y = row;
 
-        rotate_point(line_x, line_y, image_angle + rotation, &filter_x, &filter_y);
+        rotate_point(cx, cy, image_angle + rotation, &filter_x, &filter_y);
         color += filter_line(line_x,
                              line_y,
                              line_angle + rotation,

@@ -118,7 +118,9 @@ class DrawTexture:
 
     fs = """
     #version 440 core
-    layout(binding=0) uniform sampler2D tex;
+    layout(location = 2) uniform int frame;
+
+    layout(binding = 0) uniform sampler2D tex;
 
     in vec2 uv;
 
@@ -127,6 +129,7 @@ class DrawTexture:
     void main()
     {
         color = texture(tex, uv);
+        //color[frame % 3] = 1.0;
     }
     """
 
@@ -138,6 +141,7 @@ class DrawTexture:
         self._program = createProgram(vertex_shader, fragment_shader)
         glDeleteShader(vertex_shader)
         glDeleteShader(fragment_shader)
+        self.frame = 0
 
     def __del__(self):
         del self._vertex_quad
@@ -153,6 +157,8 @@ class DrawTexture:
     def draw(self, x, y, width, height, texture):
         glUniform2f(0, x, y)
         glUniform2f(1, width, height)
+        glUniform1i(2, self.frame)
         glActiveTexture(GL_TEXTURE0)
         texture.bind()
         self._vertex_quad.draw()
+        self.frame += 1

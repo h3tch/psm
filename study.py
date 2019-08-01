@@ -14,9 +14,7 @@ import time
 
 
 class Study:
-    def __init__(self, user, conditions=None):
-        if conditions is None:
-            conditions = self._load_config()
+    def __init__(self, user, conditions):
         self.quests = quest.MultiQuest(user=user,
                                        conditions=conditions,
                                        random_reference_probability=0.2)
@@ -142,9 +140,10 @@ class Study:
 
     def on_render(self, gl_area, gl_context):
         stimuli = self._render_stimuli()
+        self.window.set_title(f'{self.stimuli.fps}% FPS')
         self.drawer.bind()
         self.drawer.draw(0.0, 0.0, 1.0, 1.0, stimuli)
-        gl_area.queue_draw()
+        gl_area.queue_render()
 
     def _render_stimuli(self):
         is_random_reference_quest = self.quests.is_reference
@@ -154,23 +153,28 @@ class Study:
             return self.stimuli.reference_image
         return self.stimuli.artifact_image
 
-    def _load_config(self):
-        with open(os.path.join(os.path.dirname(__file__), 'config.json'),
-                  'rt') as fp:
-            config = json.load(fp)
-            base_condition = config['base']
-            conditions = config['conditions']
-            conditions = [{**base_condition, **c} for c in conditions]
-            for c in conditions:
-                c['label'] = f'angle{c["line_angle"]}-noise{c["filter_noise"]}-imgsamples{c["image_samples"]}'
-                c['line_angle'] = np.deg2rad(c['line_angle'])
-        return conditions
-
     @property
     def trial_duration(self):
         return time.time() - self._trial_start_time
 
 
+def load_config(filename):
+    with open(os.path.join(os.path.dirname(__file__), filename), 'rt') as fp:
+        config = json.load(fp)
+        base_condition = config['base']
+        conditions = config['conditions']
+        conditions = [{**base_condition, **c} for c in conditions]
+        for c in conditions:
+            c['label'] = '-'.join([
+                f'angle{c["line_angle"]}',
+                f'noise{c["filter_noise"]}',
+                f'imgsamples{c["image_samples"]}'
+            ])
+            c['line_angle'] = np.deg2rad(c['line_angle'])
+    return conditions
+
+
 if __name__ == "__main__":
-    Study(user=input('user:'))
+    conditions = load_config('config.json')
+    Study(user=input('user:'), conditions=conditions)
     Gtk.main()

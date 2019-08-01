@@ -21,6 +21,7 @@ class Generator:
 
         self.settings(1, 0, 0, 0, 0, 0, 1, True, black_screen_timeout)
         self._last_time = time.time()
+        self._fps = 0.0
 
     def __del__(self):
         del self.reference_image
@@ -80,8 +81,8 @@ class Generator:
         self.line_angle = line_angle
         self.line_nx = line_nx
         self.line_ny = line_ny
-        self.line_vx = self.line_nx * velocity
-        self.line_vy = self.line_ny * velocity
+        self.line_vx = line_nx * velocity
+        self.line_vy = line_ny * velocity
         self.filter_radius = max(0.0, filter_radius)
         self.filter_noise = np.clip(filter_noise, 0, 255) / 255.0
         self.filter_samples = max(0.0, filter_samples)
@@ -98,6 +99,7 @@ class Generator:
         current_time = time.time()
         elapsed_time = current_time - self._last_time
         self._last_time = current_time
+        self._fps = 1.0 / elapsed_time
 
         if current_time - self._last_update_time < self._black_screen_timeout:
             if reference:
@@ -136,3 +138,7 @@ class Generator:
 
         self.frame += 1
         return True
+
+    @property
+    def fps(self):
+        return int(self._fps)

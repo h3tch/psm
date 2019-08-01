@@ -136,8 +136,9 @@ class ArtifactLine(Base):
                  image_samples: int,
                  result: np.array = None):
         shape = self._result_image.shape
+        is_gl_texture = hasattr(self._result_image, 'gl_object')
 
-        if hasattr(self._result_image, 'gl_object'):
+        if is_gl_texture:
             cl.enqueue_acquire_gl_objects(command_queue, [self._result_image])
         self._program.filtered_line_artifact(command_queue, shape, (1, 1),
                                              np.uint32(shape[1]),
@@ -153,7 +154,7 @@ class ArtifactLine(Base):
                                              np.float32(image_angle),
                                              np.uint32(image_samples),
                                              self._result_image)
-        if hasattr(self._result_image, 'gl_object'):
+        if is_gl_texture:
             cl.enqueue_release_gl_objects(command_queue, [self._result_image])
 
         if result is not None:

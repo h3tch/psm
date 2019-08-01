@@ -15,11 +15,13 @@ __kernel void filtered_line(const unsigned int width,
 {
     const size_t col = get_global_id(0);
     const size_t row = get_global_id(1);
+    const float cx = width * 0.5f;
+    const float cy = height * 0.5f;
 
     float filter_x = (float)col;
     float filter_y = (float)row;
 
-    rotate_point(line_x, line_y, image_angle, &filter_x, &filter_y);
+    rotate_point(cx, cy, image_angle, &filter_x, &filter_y);
 
     float color = estimate_circle_half_space_overlap(
         filter_x, filter_y, filter_radius, line_x, line_y, line_angle);
