@@ -5,9 +5,10 @@ import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 from gi.repository import Gtk, Gdk, GLib, GObject
-import numpy as np
-import json
 import glutil
+import itertools
+import json
+import numpy as np
 import quest
 import stimuli
 import time
@@ -22,9 +23,8 @@ class Study:
         self.window = None
         self._trial_start_time = None
         self._window_title = ''
-
         if glade_filename is not None:
-            self._init_ui('study-small.glade')
+            self._init_ui(glade_filename)
 
     def _init_ui(self, glade_filename):
         handlers = {
@@ -170,24 +170,32 @@ class Study:
         return f'{self._window_title} ({self.stimuli.fps} FPS)'
 
 
-def load_config(filename):
-    with open(os.path.join(os.path.dirname(__file__), filename), 'rt') as fp:
-        config = json.load(fp)
-        settings = config['settings']
-        base_condition = config['base-condition']
-        conditions = config['conditions']
-        conditions = [{**base_condition, **c} for c in conditions]
-        for c in conditions:
-            c['label'] = '-'.join([
-                f'angle{c["line_angle"]}',
-                f'noise{c["filter_noise"]}',
-                f'imgsamples{c["image_samples"]}'
-            ])
-            c['line_angle'] = np.deg2rad(c['line_angle'])
+def load_config(*filenames):
+    def load(filename):
+        with open(os.path.join(os.path.dirname(__file__), filename), 'rt') as fp:
+            config = json.load(fp)
+            settings = config['settings']
+            base_condition = config['base-condition']
+            conditions = config['conditions']
+            conditions = [{**base_condition, **c} for c in conditions]
+            for c in conditions:
+                c['label'] = '-'.join([
+                    f'artifact{c["artifact_size"]}',
+                    f'angle{c["line_angle"]}',
+                    f'noise{c["filter_noise"]}',
+                    f'speed{c["velocity"]}',
+                    f'samples{c["image_samples"]}'
+                ])
+                c['line_angle'] = np.deg2rad(c['line_angle'])
+        return settings, conditions
+
+    configs = [load(filename) for filename in filenames]
+    settings = configs[0][0]
+    conditions = list(itertools.chain.from_iterable(config[1] for config in configs))
     return settings, conditions
 
 
 if __name__ == "__main__":
-    settings, conditions = load_config('test.json')
-    Study('study-small.glade', settings, conditions, user='')
+    settings, conditions = load_config('study-angle.json')
+    Study('study.glade', settings, conditions, user=input('user:'))
     Gtk.main()
