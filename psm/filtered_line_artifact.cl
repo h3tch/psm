@@ -110,16 +110,16 @@ __kernel void filtered_line_artifact(const unsigned int width,
     for (unsigned int i = 1; i < image_samples; ++i) {
         const float rotation = (40.0f / i) * M_PI / 180.0f;
 
-        filter_x = col;
-        filter_y = row;
+        float sample_x = filter_x;
+        float sample_y = filter_y;
 
-        rotate_point(cx, cy, image_angle + rotation, &filter_x, &filter_y);
+        rotate_point(line_x, line_y, rotation, &sample_x, &sample_y);
         color += filter_line(line_x,
                              line_y,
                              line_angle + rotation,
                              artifact_size,
-                             filter_x,
-                             filter_y,
+                             sample_x,
+                             sample_y,
                              radius);
     }
     color /= (float)image_samples;

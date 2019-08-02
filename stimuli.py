@@ -5,7 +5,7 @@ import glutil
 
 
 class Generator:
-    def __init__(self, image_size, black_screen_timeout=0.0):
+    def __init__(self, image_size):
         self._image_size = image_size
 
         self.reference_image = glutil.Texture2D(image_size, image_size)
@@ -19,7 +19,7 @@ class Generator:
         self._draw_artifact_line = psm.filter.ArtifactLine(
             image_size, image_size, self.artifact_image.obj)
 
-        self.settings(1, 0, 0, 0, 0, 0, 1, True, black_screen_timeout)
+        self.settings(1, 0, 0, 0, 0, 0, 1, True, 0.0)
         self._last_time = time.time()
         self._fps = 0.0
 

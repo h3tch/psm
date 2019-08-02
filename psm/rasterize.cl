@@ -21,7 +21,8 @@ float next_line_step_x(const float artifact_size,
                        const float d,
                        const float rasterized_y)
 {
+    const float half_artifact_size = artifact_size * 0.5f;
     const float max_x = (rasterized_y + half_artifact_size - d) / fabs(k);
     const float x = rasterize(artifact_size, max_x);
-    return max_x - x < artifact_size * 0.5f ? x : x + artifact_size;
+    return max_x - x < half_artifact_size ? x : x + artifact_size;
 }

@@ -14,7 +14,7 @@ import time
 
 
 class Study:
-    def __init__(self, user, conditions, settings):
+    def __init__(self, glade_filename, settings, conditions, user):
         self.quests = quest.MultiQuest(user, conditions, **settings)
         self.stimuli = None
         self.drawer = None
@@ -23,7 +23,8 @@ class Study:
         self._trial_start_time = None
         self._window_title = ''
 
-        self._init_ui('study-small.glade')
+        if glade_filename is not None:
+            self._init_ui('study-small.glade')
 
     def _init_ui(self, glade_filename):
         handlers = {
@@ -50,7 +51,8 @@ class Study:
 
     def on_quit(self, *args):
         self.quests.save()
-        Gtk.main_quit(*args)
+        if self.window is not None:
+            Gtk.main_quit(*args)
 
     def on_different(self, widget, event, *args):
         if not self.stimuli.is_showing:
@@ -72,10 +74,27 @@ class Study:
         self.setup_next_quest()
 
     def on_undo(self, widget):
-        if not self.stimuli.is_showing:
+        if not self.stimuli.is_showing or not self.quests.quest_changed:
             return
         self.quests.undo()
         self.setup_next_quest()
+
+    def on_render(self, gl_area, gl_context):
+        stimuli = self._render_stimuli()
+        if self.window is not None:
+            self.window.set_title(self.window_title)
+        self.drawer.bind()
+        self.drawer.draw(0.0, 0.0, 1.0, 1.0, stimuli)
+        if gl_area is not None:
+            gl_area.queue_render()
+
+    def _render_stimuli(self):
+        is_random_reference_quest = self.quests.is_reference
+        self.stimuli.render(reference=is_random_reference_quest,
+                            artifact=not is_random_reference_quest)
+        if is_random_reference_quest:
+            return self.stimuli.reference_image
+        return self.stimuli.artifact_image
 
     def setup_next_quest(self):
         try:
@@ -83,15 +102,15 @@ class Study:
             self._update_ui()
             self._update_stimuli(intensity, condition)
         except StopIteration:
-            self.window.close()
+            if self.window is not None:
+                self.window.close()
 
     def _update_ui(self):
         if self.quests.quest_changed:
             percent = int(self.quests.percent_done)
             self._window_title = f'{percent}% done'
-            self.undo_button.set_sensitive(True)
-        else:
-            self.undo_button.set_sensitive(False)
+        if self.undo_button is not None:
+            self.undo_button.set_sensitive(self.quests.quest_changed)
 
     def _update_stimuli(self, intensity, condition):
         pause = self._calculate_pause()
@@ -126,35 +145,29 @@ class Study:
         return ctx
 
     def on_realize(self, gl_area):
-        gl_area.get_context().make_current()
-        gl_area_height = int(gl_area.get_allocated_height())
-        self.stimuli = stimuli.Generator(gl_area_height, 3.0)
+        if gl_area is not None:
+            if isinstance(gl_area, int):
+                gl_area_height = gl_area
+            else:
+                gl_area.get_context().make_current()
+                gl_area_height = int(gl_area.get_allocated_height())
+        self.stimuli = stimuli.Generator(gl_area_height)
         self.drawer = glutil.DrawTexture()
         self.setup_next_quest()
 
     def on_unrealize(self, gl_area):
-        gl_area.get_context().make_current()
+        if gl_area is not None:
+            gl_area.get_context().make_current()
         del self.stimuli
         del self.drawer
-
-    def on_render(self, gl_area, gl_context):
-        stimuli = self._render_stimuli()
-        self.window.set_title(f'{self._window_title} ({self.stimuli.fps} FPS)')
-        self.drawer.bind()
-        self.drawer.draw(0.0, 0.0, 1.0, 1.0, stimuli)
-        gl_area.queue_render()
-
-    def _render_stimuli(self):
-        is_random_reference_quest = self.quests.is_reference
-        self.stimuli.render(reference=is_random_reference_quest,
-                            artifact=not is_random_reference_quest)
-        if is_random_reference_quest:
-            return self.stimuli.reference_image
-        return self.stimuli.artifact_image
 
     @property
     def trial_duration(self):
         return time.time() - self._trial_start_time
+
+    @property
+    def window_title(self):
+        return f'{self._window_title} ({self.stimuli.fps} FPS)'
 
 
 def load_config(filename):
@@ -176,5 +189,5 @@ def load_config(filename):
 
 if __name__ == "__main__":
     settings, conditions = load_config('test.json')
-    Study(user='', conditions=conditions, settings=settings)
+    Study('study-small.glade', settings, conditions, user='')
     Gtk.main()
