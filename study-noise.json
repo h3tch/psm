@@ -22,7 +22,7 @@
             "artifact_size": 8,
             "line_angle": 1,
             "filter_noise": 10,
-            "filter_radius": 166.0,
+            "filter_radius": 200.0,
             "filter_radius_noise": 0.1,
             "image_samples": 1
         },
@@ -31,7 +31,7 @@
             "artifact_size": 8,
             "line_angle": 1,
             "filter_noise": 20,
-            "filter_radius": 166.0,
+            "filter_radius": 200.0,
             "filter_radius_noise": 0.1,
             "image_samples": 1
         }

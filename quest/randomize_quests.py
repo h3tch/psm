@@ -163,7 +163,7 @@ class MultiQuest:
             self._quest_changed = True
             self._quest_changes += 1
             self._next_quest_index()
-            if self._is_reference:
+            if self._is_reference and self._has_active_quest:
                 self._reference_quest = copy.deepcopy(self._active_quest)
             else:
                 self._reference_quest = None

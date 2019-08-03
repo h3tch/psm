@@ -22,7 +22,7 @@
             "artifact_size": 8,
             "line_angle": 1,
             "filter_noise": 0,
-            "filter_radius": 166.0,
+            "filter_radius": 200.0,
             "filter_radius_noise": 0.0,
             "image_samples": 1
         },
@@ -31,7 +31,7 @@
             "artifact_size": 4,
             "line_angle": 1,
             "filter_noise": 0,
-            "filter_radius": 83.0,
+            "filter_radius": 100.0,
             "filter_radius_noise": 0.0,
             "image_samples": 1
         },
@@ -40,7 +40,7 @@
             "artifact_size": 2,
             "line_angle": 1,
             "filter_noise": 0,
-            "filter_radius": 42.0,
+            "filter_radius": 50.0,
             "filter_radius_noise": 0.0,
             "image_samples": 1
         },
@@ -49,7 +49,7 @@
             "artifact_size": 1,
             "line_angle": 1,
             "filter_noise": 0,
-            "filter_radius": 21.0,
+            "filter_radius": 35.0,
             "filter_radius_noise": 0.0,
             "image_samples": 1
         }

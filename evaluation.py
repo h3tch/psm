@@ -40,7 +40,8 @@ if args.stairs:
         for label_index, label_name in enumerate(unique_label):
             label_color = (label_index + 1) / len(unique_label)
             color = matplotlib.colors.hsv_to_rgb((label_color, user_color, 0.8))
-            ax.plot(radius[(user == user_name) & (label == label_name)], color=color)
+            ax.plot(radius[(user == user_name) & (label == label_name)], color=color, label=label_name)
+    ax.legend()
 
 if args.thresholds:
     data = table[table['is_reference'] == False]
@@ -60,6 +61,7 @@ if args.thresholds:
             r = radius[(user == user_name) & (label == label_name)]
             label_color = (label_index + 1) / len(unique_label)
             color = matplotlib.colors.hsv_to_rgb((label_color, user_color, 0.8))
-            ax.plot(r[-1], 'o', color=color)
+            ax.plot(r[-1], 'o', color=color, label=label_name)
+    ax.legend()
 
 plt.show()

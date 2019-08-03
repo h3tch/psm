@@ -197,6 +197,6 @@ def load_config(*filenames):
 
 
 if __name__ == "__main__":
-    settings, conditions = load_config('study-angle.json')
-    Study('study.glade', settings, conditions, user=input('user:'))
+    settings, conditions = load_config('study-artifact.json', 'study-noise.json')
+    study = Study('study.glade', settings, conditions, user=input('user: '))
     Gtk.main()
