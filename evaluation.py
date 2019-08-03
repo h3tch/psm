@@ -4,6 +4,7 @@ import matplotlib.colors
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import sys
 
 
 parser = argparse.ArgumentParser(description='Evaluate study data.')
@@ -12,7 +13,10 @@ parser.add_argument('--user', help='Evaluate a single user.')
 parser.add_argument('--stairs', help='Show the staircase plot.', action="store_true")
 parser.add_argument('--thresholds', help='Show the threshold plot.', action="store_true")
 
-args = parser.parse_args(['--user', 'mh-angle-pilot', '--threshold', '--stairs'])
+if len(sys.argv) > 1:
+    args = parser.parse_args(sys.argv[1:])
+else:
+    args = parser.parse_args(['--threshold', '--stairs'])
 
 user_filter = '*' if args.user is None else args.user
 files = glob.glob(os.path.join('data', f'{user_filter}.csv'))

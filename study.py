@@ -167,7 +167,8 @@ class Study:
 
     @property
     def window_title(self):
-        return f'{self._window_title} ({self.stimuli.fps} FPS)'
+        # return f'{self._window_title} ({self.stimuli.fps} FPS)'
+        return self._window_title
 
 
 def load_config(*filenames):
