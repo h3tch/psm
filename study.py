@@ -173,7 +173,8 @@ class Study:
 
 def load_config(*filenames):
     def load(filename):
-        with open(os.path.join(os.path.dirname(__file__), filename), 'rt') as fp:
+        with open(os.path.join(os.path.dirname(__file__), filename),
+                  'rt') as fp:
             config = json.load(fp)
             settings = config['settings']
             base_condition = config['base-condition']
@@ -181,10 +182,8 @@ def load_config(*filenames):
             conditions = [{**base_condition, **c} for c in conditions]
             for c in conditions:
                 c['label'] = '-'.join([
-                    f'artifact{c["artifact_size"]}',
-                    f'angle{c["line_angle"]}',
-                    f'noise{c["filter_noise"]}',
-                    f'speed{c["velocity"]}',
+                    f'artifact{c["artifact_size"]}', f'angle{c["line_angle"]}',
+                    f'noise{c["filter_noise"]}', f'speed{c["velocity"]}',
                     f'samples{c["image_samples"]}'
                 ])
                 c['line_angle'] = np.deg2rad(c['line_angle'])
@@ -192,11 +191,13 @@ def load_config(*filenames):
 
     configs = [load(filename) for filename in filenames]
     settings = configs[0][0]
-    conditions = list(itertools.chain.from_iterable(config[1] for config in configs))
+    conditions = list(
+        itertools.chain.from_iterable(config[1] for config in configs))
     return settings, conditions
 
 
 if __name__ == "__main__":
-    settings, conditions = load_config('study-artifact.json', 'study-noise.json')
+    settings, conditions = load_config('study-artifact.json',
+                                       'study-angle.json', 'study-noise.json')
     study = Study('study.glade', settings, conditions, user=input('user: '))
     Gtk.main()

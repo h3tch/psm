@@ -31,7 +31,7 @@ class MultiQuest:
         self._random_reference_probability = random_reference_probability
 
         self._active_quest_history = []
-        self._max_active_quest_history = int(len(conditions) / 3)
+        self._max_active_quest_history = 0
         self._active_quest_index = self._random_quest_index()
         self._is_reference = self._random_reference_decision
         self._reference_quest = copy.deepcopy(self._active_quest)
@@ -173,7 +173,8 @@ class MultiQuest:
 
     def _next_quest_index(self):
         self._active_quest_history.append(self._active_quest_index)
-        while len(self._active_quest_history) > self._max_active_quest_history:
+        max_active_quest_history = int(self.remaining_quests / 3)
+        while len(self._active_quest_history) > max_active_quest_history:
             del self._active_quest_history[0]
         self._active_quest_index = self._next_active_quest_index()
 
@@ -298,6 +299,10 @@ class MultiQuest:
     @property
     def remaining_trials(self):
         return self.number_of_trials - self.done_trials
+
+    @property
+    def remaining_quests(self):
+        return sum(1 for q in self._quests if not q.finished)
 
     @property
     def number_of_trials(self):
