@@ -3,7 +3,7 @@
         "random_reference_probability": 0.2
     },
     "base-condition": {
-        "nTrials": 40,
+        "nTrials": 50,
         "pThreshold": 0.82,
         "beta": 3.5,
         "delta": 0.01,
@@ -21,7 +21,7 @@
             "artifact_size": 8,
             "line_angle": 1,
             "filter_noise": 0,
-            "filter_radius": 166.0,
+            "filter_radius": 180.0,
             "image_samples": 1
         },
         {
@@ -30,7 +30,7 @@
             "artifact_size": 8,
             "line_angle": 1,
             "filter_noise": 20,
-            "filter_radius": 166.0,
+            "filter_radius": 180.0,
             "image_samples": 1
         },
         {
@@ -39,7 +39,7 @@
             "artifact_size": 8,
             "line_angle": 1,
             "filter_noise": 0,
-            "filter_radius": 150.0,
+            "filter_radius": 160.0,
             "image_samples": 2
         },
         {
@@ -48,7 +48,7 @@
             "artifact_size": 8,
             "line_angle": 1,
             "filter_noise": 20,
-            "filter_radius": 150.0,
+            "filter_radius": 160.0,
             "image_samples": 2
         },
         {
