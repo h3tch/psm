@@ -35,28 +35,12 @@ float filter_line(const float line_x,
         return r1 < 0.0f ? 0.0f : 1.0f;
     }
 
-    // float area = 0.0f;
-    // while (c0 <= filter_radius) {
-    //     const float c1 = c0 + artifact_size;
-    //     const float r1 =
-    //         rasterize_line_y(artifact_size, k, d, c0 + pixel_center_shift)
-    //         - filter_y;
-    //     float a = estimate_circle_infinite_bar_area(
-    //         c0, c1, fabs(r1), filter_radius, filter_radius2);
-    //     if (r1 > 0)
-    //         a = estimate_circle_interval_area(
-    //                 c0, c1, filter_radius, filter_radius2)
-    //             - a;
-    //     area += a;
-    //     c0 = c1;
-    // }
-
     float area = 0.0f;
     while (c0 <= filter_radius) {
-        float r1 =
-            rasterize_line_y(artifact_size, k, d, c0 + pixel_center_shift);
-        const float c1 = next_line_step_x(artifact_size, k, d, r1) - filter_x;
-        r1 -= filter_y;
+        const float c1 = c0 + artifact_size;
+        const float r1 =
+            rasterize_line_y(artifact_size, k, d, c0 + pixel_center_shift)
+            - filter_y;
         float a = estimate_circle_infinite_bar_area(
             c0, c1, fabs(r1), filter_radius, filter_radius2);
         if (r1 > 0)
@@ -66,6 +50,22 @@ float filter_line(const float line_x,
         area += a;
         c0 = c1;
     }
+
+    // float area = 0.0f;
+    // while (c0 <= filter_radius) {
+    //     float r1 =
+    //         rasterize_line_y(artifact_size, k, d, c0 + pixel_center_shift);
+    //     const float c1 = next_line_step_x(artifact_size, k, d, r1) - filter_x;
+    //     r1 -= filter_y;
+    //     float a = estimate_circle_infinite_bar_area(
+    //         c0, c1, fabs(r1), filter_radius, filter_radius2);
+    //     if (r1 > 0)
+    //         a = estimate_circle_interval_area(
+    //                 c0, c1, filter_radius, filter_radius2)
+    //             - a;
+    //     area += a;
+    //     c0 = c1;
+    // }
 
     const float circle_area = estimate_circle_area2(filter_radius2);
     return min(max(area / circle_area, 0.0f), 1.0f);

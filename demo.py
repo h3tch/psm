@@ -29,20 +29,23 @@ class Gui:
         self.image_angle = self.builder.get_object("image_angle")
         self.filter_samples = self.builder.get_object("filter_samples")
         self.image_samples = self.builder.get_object("image_samples")
-        self.filter_radius_noise = self.builder.get_object("filter_radius_noise")
+        self.filter_radius_noise = self.builder.get_object(
+            "filter_radius_noise")
 
         self.window = self.builder.get_object("window")
         self.window.show_all()
 
         image_width = self.canvas.get_allocated_width()
         image_height = self.canvas.get_allocated_height()
-        self.image_data = np.zeros((image_height, image_width, 4), dtype=np.uint8)
+        self.image_data = np.zeros((image_height, image_width, 4),
+                                   dtype=np.uint8)
         image_surface = cairo.ImageSurface.create_for_data(
             self.image_data, cairo.FORMAT_ARGB32, image_width, image_height)
         self.canvas.set_from_surface(image_surface)
 
         self._draw_artifact_line = psm.filter.ArtifactLine(
             image_width, image_height)
+        self._draw_line = psm.filter.Line(image_width, image_height)
 
         self.draw()
 
@@ -63,20 +66,31 @@ class Gui:
         image_samples = int(self.image_samples.get_value())
         filter_radius_noise = self.filter_radius_noise.get_value()
 
-        self._draw_artifact_line(line_x,
-                                 line_y,
-                                 line_angle,
-                                 artifact_size,
-                                 filter_radius,
-                                 filter_noise,
-                                 filter_samples,
-                                 filter_radius_noise,
-                                 image_angle,
-                                 image_samples,
-                                 result=self.image_data)
+        if artifact_size == 0:
+            self._draw_line(line_x,
+                            line_y,
+                            line_angle,
+                            filter_radius,
+                            filter_noise,
+                            filter_samples,
+                            image_angle,
+                            result=self.image_data)
+        else:
+            self._draw_artifact_line(line_x,
+                                     line_y,
+                                     line_angle,
+                                     artifact_size,
+                                     filter_radius,
+                                     filter_noise,
+                                     filter_samples,
+                                     filter_radius_noise,
+                                     image_angle,
+                                     image_samples,
+                                     result=self.image_data)
 
         self.image_data[:, :, 3] = 255
         self.canvas.queue_draw()
+
 
 Gui('demo.glade')
 Gtk.main()
