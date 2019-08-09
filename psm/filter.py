@@ -98,7 +98,7 @@ class Line(Base):
                                     np.uint32(shape[1]), np.uint32(shape[0]),
                                     np.float32(line_x), np.float32(line_y),
                                     np.float32(line_angle),
-                                    np.float32(filter_radius),
+                                    np.float32(max(1.0, filter_radius)),
                                     np.float32(filter_noise),
                                     np.float32(filter_samples),
                                     np.float32(image_angle),
