@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import sys
-import csv
+import csv2np
 import figures
 import filter
 import scipy.stats
@@ -28,10 +28,9 @@ parser.add_argument('--normaltest',
 args = parser.parse_args(
     sys.argv[1:] if len(sys.argv) > 1 else ['--boxplot', '--qqplot'])
 
-user_filter = '*' if args.user is None else args.user
 files = glob.glob(os.path.join('data', '*.csv'))
 
-table = csv.load(files)
+table = csv2np.load(files)
 
 if args.nouser:
     table = table[table['user'] != args.nouser]
