@@ -5,7 +5,7 @@
         "window_size": 800
     },
     "base-condition": {
-        "nTrials": 40,
+        "nTrials": 50,
         "pThreshold": 0.82,
         "beta": 3.5,
         "delta": 0.01,
