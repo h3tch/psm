@@ -14,8 +14,9 @@ def thresholds(data):
     for user_name in unique_user:
         for label_name in unique_label:
             r = radius[(user == user_name) & (label == label_name)]
-            labels.append(label_name)
-            radii.append(r[-1])
+            if len(r) > 0:
+                labels.append(label_name)
+                radii.append(r[-1])
 
     labels = np.array(labels)
     radii = np.array(radii)

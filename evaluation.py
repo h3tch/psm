@@ -47,7 +47,7 @@ if args.qqplot:
     for i, label in enumerate(np.unique(labels)):
         r = radii[labels == label]
         statistic, pvalue = scipy.stats.shapiro(r)
-        ax = fig.add_subplot(2, 5, i + 1)
+        ax = fig.add_subplot(4, 5, i + 1)
         scipy.stats.probplot(r, plot=ax)
         ax.title.set_text(f'{label} (p:{np.round(pvalue, 2)})')
 

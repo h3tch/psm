@@ -201,8 +201,7 @@ if __name__ == "__main__":
     if user.endswith('-test'):
         configs = ('test.json', )
     else:
-        configs = ('study-artifact.json', 'study-angle.json',
-                   'study-noise.json')
+        configs = ('study-angle3.json', 'study-noise2.json')
     settings, conditions = load_config(*configs)
     study = Study('study.glade', settings, conditions, user)
     Gtk.main()

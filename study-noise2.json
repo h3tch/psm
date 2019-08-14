@@ -1,0 +1,48 @@
+{
+    "settings": {
+        "random_reference_probability": 0.2,
+        "stimuli_size": 800,
+        "window_size": 800
+    },
+    "base-condition": {
+        "nTrials": 50,
+        "pThreshold": 0.82,
+        "beta": 3.5,
+        "delta": 0.01,
+        "gamma": 0.5,
+        "grain": 0.1,
+        "startValSd": 0.4,
+        "stopInterval": 0.1,
+        "filter_samples": 100.0,
+        "velocity": 0.0
+    },
+    "conditions": [
+        {
+            "startVal": 0.6,
+            "artifact_size": 4,
+            "line_angle": 1,
+            "filter_noise": 20,
+            "filter_radius": 100.0,
+            "filter_radius_noise": 0.1,
+            "image_samples": 1
+        },
+        {
+            "startVal": 0.6,
+            "artifact_size": 8,
+            "line_angle": 22.5,
+            "filter_noise": 20,
+            "filter_radius": 133.0,
+            "filter_radius_noise": 0.1,
+            "image_samples": 1
+        },
+        {
+            "startVal": 0.6,
+            "artifact_size": 8,
+            "line_angle": 45,
+            "filter_noise": 20,
+            "filter_radius": 100.0,
+            "filter_radius_noise": 0.1,
+            "image_samples": 1
+        }
+    ]
+}
