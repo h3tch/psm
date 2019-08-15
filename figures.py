@@ -76,9 +76,10 @@ def boxplot(data, show_points=True):
     ax = plt.axes()
 
     radii = [[
-        radius[(user == user_name) & (label == label_name)][-1]
+        radius[(user == user_name) & (label == label_name)]
         for user_name in unique_user
     ] for label_name in unique_label]
+    radii = [[r[-1] for r in radius if len(r) > 0] for radius in radii]
 
     if show_points:
         colors = [[

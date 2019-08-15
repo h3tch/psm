@@ -27,7 +27,7 @@ parser.add_argument('--boxplot', help='Show the boxplot.', action="store_true")
 parser.add_argument('--qqplot', help='Show the QQ-plot.', action="store_true")
 
 args = parser.parse_args(
-    sys.argv[1:] if len(sys.argv) > 1 else ['--boxplot', '--qqplot', '--outlierremoval'])
+    sys.argv[1:] if len(sys.argv) > 1 else ['--boxplot'])
 
 files = glob.glob(os.path.join('data', '*.csv'))
 
