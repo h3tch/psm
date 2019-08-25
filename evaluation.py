@@ -53,7 +53,11 @@ if args.qqplot:
 
 if args.boxplot:
     data = table[table['is_reference'] == False]
+    # sort_index = np.argsort(data['line_angle'])
+    # data[sort_index, :]
     figures.boxplot(data)
+    # figures.boxplot(data[(data['filter_noise'] == 0) & (data['line_angle'] == np.deg2rad(1))])
+    #figures.boxplot(data[(data['filter_noise'] == 0) & (data['artifact_size'] == 8)])
 
 if args.user:
     table = table[table['user'] == args.user]
