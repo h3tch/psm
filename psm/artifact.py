@@ -14,13 +14,18 @@ def distance(angle):
     return (stair_size, secondary_stair_size), (stair_size, secondary_stair_distance)
 
 
+def distance2(angle):
+    stair = 1.0 / np.tan(angle)
+    return stair, 1.0 / (np.tan(angle) * np.abs(stair - np.round(stair)))
+
+
 if __name__ == "__main__":
     max_y = 300
     step_size = 0.0001
     start = np.rad2deg(np.arctan2(1, max_y))
-    angles = np.arange(start, 45 + step_size, step_size)
+    angles = np.deg2rad(np.arange(start, 45 + step_size, step_size))
 
-    _, (stair_distance, secondary_stair_distance) = distance(np.deg2rad(angles))
+    stair_distance, secondary_stair_distance = distance2(angles)
     mask = secondary_stair_distance > max_y
     secondary_stair_distance[mask] = stair_distance[mask]
 
