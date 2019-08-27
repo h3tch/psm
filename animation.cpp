@@ -7,6 +7,14 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#define _USE_MATH_DEFINES
+#include <cmath>
+
+template<typename real_t>
+real_t deg2rad(real_t deg)
+{
+    return deg * (M_PI / 180.0);
+}
 
 static const float vertexdata[] = {
     0.0f, 0.0f, 0.0f, 0.0f,
@@ -127,15 +135,34 @@ int main()
     auto uniform_filter_radius = glGetUniformLocation(program, "filter_radius");
 
     double time = glfwGetTime();
+    const float line_angle = deg2rad(5.0f);
+    const float line_nx = -std::sin(line_angle);
+    const float line_ny = std::cos(line_angle);
+    float line_cx = width * 0.5f;
+    float line_cy = height * 0.5f;
+    float line_vx = line_nx * 80;
+    float line_vy = line_ny * 80;
 
     while (!glfwWindowShouldClose(window)) {
         double currentTime = glfwGetTime();
         double elapsedTime = currentTime - time;
+        time = currentTime;
+
+        line_cx += line_vx * elapsedTime;
+        line_cy += line_vy * elapsedTime;
+
+        auto distance = line_cx * line_nx + line_cy * line_ny;
+
+        if (distance < 0.f || distance > width * line_nx + height * line_ny) {
+            line_vx = -line_vx;
+            line_vy = -line_vy;
+        }
+
         glUseProgram(program);
         glUniform2f(scaleuniform, 1.0f, 1.0f);
         glUniform2f(shiftuniform, 0.0f, 0.0f);
         glUniform1ui(uniform_artifact_size, 8);
-        glUniform3f(uniform_line, width * 0.5f, height * 0.5f, 0.017f * elapsedTime);
+        glUniform3f(uniform_line, line_cx, line_cy, line_angle);
         glUniform1f(uniform_filter_radius, 40.0f);
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
         glfwSwapBuffers(window);

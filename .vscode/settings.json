@@ -43,7 +43,13 @@
         "ratio": "cpp",
         "string_view": "cpp",
         "thread": "cpp",
-        "cinttypes": "cpp"
+        "cinttypes": "cpp",
+        "atomic": "cpp",
+        "algorithm": "cpp",
+        "iterator": "cpp",
+        "memory_resource": "cpp",
+        "random": "cpp",
+        "string": "cpp"
     },
     "python.pythonPath": "/home/mh/.pyenv/versions/v3.7.4/bin/python",
     "python.formatting.provider": "yapf",
