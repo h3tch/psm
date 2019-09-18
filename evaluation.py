@@ -5,63 +5,70 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import sys
-
+import csv2np
+import figures
+import statistics
+import scipy.stats
 
 parser = argparse.ArgumentParser(description='Evaluate study data.')
-
+parser.add_argument(
+    '--outlierremoval',
+    help='Remove statistical outliers before performing any analysis.',
+    action="store_true")
 parser.add_argument('--user', help='Evaluate a single user.')
-parser.add_argument('--stairs', help='Show the staircase plot.', action="store_true")
-parser.add_argument('--thresholds', help='Show the threshold plot.', action="store_true")
+parser.add_argument('--nouser', help='Remove a single user.')
+parser.add_argument('--stairs',
+                    help='Show the staircase plot.',
+                    action="store_true")
+parser.add_argument('--thresholds',
+                    help='Show the threshold plot.',
+                    action="store_true")
+parser.add_argument('--boxplot', help='Show the boxplot.', action="store_true")
+parser.add_argument('--qqplot', help='Show the QQ-plot.', action="store_true")
 
-if len(sys.argv) > 1:
-    args = parser.parse_args(sys.argv[1:])
-else:
-    args = parser.parse_args(['--threshold', '--stairs'])
+args = parser.parse_args(
+    sys.argv[1:] if len(sys.argv) > 1 else ['--boxplot'])
 
-user_filter = '*' if args.user is None else args.user
-files = glob.glob(os.path.join('data', f'{user_filter}.csv'))
+files = glob.glob(os.path.join('data', '*.csv'))
 
-tables = [np.genfromtxt(f, delimiter=',', names=True, dtype=None, encoding='utf-8') for f in files]
-table = np.concatenate(tables)
+table = csv2np.load(files)
+
+if args.nouser:
+    table = table[table['user'] != args.nouser]
+
+if args.qqplot:
+    data = table[table['is_reference'] == False]
+    labels, radii, outlier = statistics.thresholds(data)
+    if args.outlierremoval:
+        labels = labels[~outlier]
+        radii = radii[~outlier]
+    labels = figures.relabel(labels)
+    fig = plt.figure('QQ-Plots')
+    for i, label in enumerate(np.unique(labels)):
+        r = radii[labels == label]
+        statistic, pvalue = scipy.stats.shapiro(r)
+        ax = fig.add_subplot(4, 5, i + 1)
+        scipy.stats.probplot(r, plot=ax)
+        ax.title.set_text(f'{label} (p:{np.round(pvalue, 2)})')
+
+if args.boxplot:
+    data = table[table['is_reference'] == False]
+    # sort_index = np.argsort(data['line_angle'])
+    # data[sort_index, :]
+    data['filter_radius'] = data['filter_radius'].astype(np.float64) / data['artifact_size'].astype(np.float64)
+    # figures.boxplot(data)
+    # figures.boxplot(data[(data['filter_noise'] == 0) & (data['line_angle'] == np.deg2rad(1))])
+    figures.boxplot(data[(data['filter_noise'] == 0) & (data['artifact_size'] == 8)])
+
+if args.user:
+    table = table[table['user'] == args.user]
 
 if args.stairs:
     data = table[table['is_reference'] == False]
-
-    user = data['user']
-    unique_user = np.unique(data['user'])
-    label = data['label']
-    unique_label = np.unique(label)
-    radius = data['intensity'] * data['filter_radius']
-
-    fig = plt.figure("Stairs")
-    ax = plt.axes()
-    for user_index, user_name in enumerate(unique_user):
-        user_color = (user_index + 1) / len(unique_user)
-        for label_index, label_name in enumerate(unique_label):
-            label_color = (label_index + 1) / len(unique_label)
-            color = matplotlib.colors.hsv_to_rgb((label_color, user_color, 0.8))
-            ax.plot(radius[(user == user_name) & (label == label_name)], color=color, label=label_name)
-    ax.legend()
+    figures.stairs(data, legend=True)
 
 if args.thresholds:
     data = table[table['is_reference'] == False]
-
-    user = data['user']
-    unique_user = np.unique(data['user'])
-    label = data['label']
-    unique_label = np.unique(label)
-    radius = data['intensity'] * data['filter_radius']
-    trial_id = data['questTrialId']
-
-    fig = plt.figure("Thresholds")
-    ax = plt.axes()
-    for user_index, user_name in enumerate(unique_user):
-        user_color = (user_index + 1) / len(unique_user)
-        for label_index, label_name in enumerate(unique_label):
-            r = radius[(user == user_name) & (label == label_name)]
-            label_color = (label_index + 1) / len(unique_label)
-            color = matplotlib.colors.hsv_to_rgb((label_color, user_color, 0.8))
-            ax.plot(r[-1], 'o', color=color, label=label_name)
-    ax.legend()
+    figures.thresholds(data)
 
 plt.show()

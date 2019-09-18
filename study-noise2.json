@@ -19,38 +19,29 @@
     "conditions": [
         {
             "startVal": 0.6,
-            "artifact_size": 8,
-            "line_angle": 10,
-            "filter_noise": 0,
-            "filter_radius": 150.0,
-            "filter_radius_noise": 0.0,
+            "artifact_size": 4,
+            "line_angle": 1,
+            "filter_noise": 20,
+            "filter_radius": 100.0,
+            "filter_radius_noise": 0.1,
             "image_samples": 1
         },
         {
             "startVal": 0.6,
             "artifact_size": 8,
             "line_angle": 22.5,
-            "filter_noise": 0,
+            "filter_noise": 20,
             "filter_radius": 133.0,
-            "filter_radius_noise": 0.0,
-            "image_samples": 1
-        },
-        {
-            "startVal": 0.6,
-            "artifact_size": 8,
-            "line_angle": 36,
-            "filter_noise": 0,
-            "filter_radius": 116.0,
-            "filter_radius_noise": 0.0,
+            "filter_radius_noise": 0.1,
             "image_samples": 1
         },
         {
             "startVal": 0.6,
             "artifact_size": 8,
             "line_angle": 45,
-            "filter_noise": 0,
+            "filter_noise": 20,
             "filter_radius": 100.0,
-            "filter_radius_noise": 0.0,
+            "filter_radius_noise": 0.1,
             "image_samples": 1
         }
     ]

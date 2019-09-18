@@ -1,0 +1,30 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-std=c++17",
+                "-g",
+                "-O0",
+                "-I/usr/include/libdrm",
+                "-o",
+                "${workspaceFolder}/animation",
+                "${workspaceFolder}/animation.cpp",
+                "-lglfw",
+                "-lGLEW",
+                "-lGLU",
+                "-lGL",
+                "-lrt",
+                "-lm",
+                "-ldl"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}

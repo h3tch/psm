@@ -115,7 +115,7 @@ class Generator:
 
         if reference:
             self._draw_line(self.current_line_x, self.current_line_y,
-                            self.line_angle, self.filter_radius,
+                            self.line_angle, max(1.0, self.filter_radius),
                             self.filter_noise, self.filter_samples,
                             self.image_angle)
         if artifact:
