@@ -20,10 +20,13 @@ def distance2(angle):
 
 
 if __name__ == "__main__":
+    singularities = np.rad2deg(np.arctan2(1, np.arange(1, 6)))
+
     max_y = 300
     step_size = 0.0001
     start = np.rad2deg(np.arctan2(1, max_y))
     angles = np.deg2rad(np.arange(start, 45 + step_size, step_size))
+    angles = np.deg2rad(np.array([1, 5.5, 10, 16, 22.5, 29, 36, 40.5, 45]))
 
     stair_distance, secondary_stair_distance = distance2(angles)
     mask = secondary_stair_distance > max_y
